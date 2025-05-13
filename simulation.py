@@ -1,22 +1,57 @@
 from typing import List
 import random
+import copy
 
-from network import Device, Enclave, Network
+from network import Device, Enclave, Segmentation
 
 class Simulation:
-    def __init__(self, C_appetite: float, I_appetite: float, beta: int, r: float, p_device_error: float = 0.7, p_network_error: float = 0.7):
+    def __init__(self, seg: Segmentation, 
+                 T: int,
+                 times: List[int],
+                 C_appetite: float = 0, 
+                 I_appetite: float = 0, 
+                 beta: int = 0, 
+                 r: float = 0, 
+                 p_device_error: float = 0.7, 
+                 p_network_error: float = 0.7):
         """
+        :param seg: The initialized network segmentation
+        :param T: Simulation time
+        :param times: List of times spend in each enclave
         :param C_appetite: Attacker compromise appetite
         :param I_appetite: Attacker information appetite
         :param beta: Beta value for device selection
         :param r: Reconnaissance rate
+        :param p_device_error: Probability of device error
+        :param p_network_error: Probability of network error
         """
+        self.segmentation = copy.deepcopy(seg) # Copy to avoid modifying the original segmentation
+        self.T = T
+        self.times = times
+        self.spent_time = 0
         self.C_appetite = C_appetite
         self.I_appetite = I_appetite
         self.beta = beta
         self.r = r
         self.p_device_error = p_device_error
         self.p_network_error = p_network_error
+        self.cleansing_loss = self.simulate_network()
+
+    def simulate_network(self) -> float:
+        """
+        Simulate the attack spread in the network (from the Internet).
+        
+        :return: Total loss incurred by the attack.
+        """
+        return self.network_spread()
+    
+    def simulate_adaption(self) -> float:
+        """
+        Simulate the attack spread from internally infected devices (adaption).
+        
+        :return: Total loss incurred by the attack.
+        """
+        return self.internet_spread()
 
     # ========================================================================================================================
     #                                                      ATTACK
@@ -42,7 +77,7 @@ class Simulation:
             loss += device.compromise_value
         return device.turned_down, loss
     
-    def enclave_spread(self, enclave: Enclave, time: int) -> float:
+    def enclave_spread(self, enclave: Enclave, time: int, infected_device: Device = None) -> float:
         """
         ### Algorithm 2 ###
         Simulate the spread of an attack in the enclave over time.
@@ -56,8 +91,9 @@ class Simulation:
             return 0
         
         # Select a random device to infect
-        target = random.choice(enclave.devices)
-        is_turned_down, compromise_loss = self.device_compromise(target, self.C_appetite)
+        if not infected_device:
+            infected_device = random.choice(enclave.devices)
+        is_turned_down, compromise_loss = self.device_compromise(infected_device, self.C_appetite)
         loss += compromise_loss
         if is_turned_down:
             alert += 1
@@ -76,7 +112,7 @@ class Simulation:
                 if self.device_IDS_detect():
                     test_alert = True
                 else:
-                    is_turned_down, compromise_loss = self.device_compromise(target, self.C_appetite)
+                    is_turned_down, compromise_loss = self.device_compromise(infected_device, self.C_appetite)
                     loss += compromise_loss
                     if is_turned_down:
                         test_alert = True
@@ -98,7 +134,7 @@ class Simulation:
         :return: Time taken for reconnaissance
         """
         recon_time = self.r * spreading_time
-        disvovered = enclave.infected_devices.copy()
+        disvovered = enclave.infected_devices()
         for _ in range(recon_time):
             not_discovered = [d for d in enclave.devices if d not in disvovered]
             if not_discovered:
@@ -123,32 +159,44 @@ class Simulation:
             reverse=True
         )[:k]
     
-    def network_spread(self, network: Network, T: int, times: List[int]) -> float:
+    def network_spread(self) -> float:
         """
         ### Algorithm 1 ###
         Simulate the spread of an attack in the network over time.
-
-        :param T: The simulation time.
-        :param times: List of times spend in each enclave
         """
-        compromised_enclaves = [Enclave("Internet")]
+        compromised_enclaves: List[Enclave] = [e for e in self.segmentation.enclaves if e.compromised] # Only Internet when initialized
         loss = 0
-        spent_time = 0
-        while spent_time <= T:
+        # spent_time = 0
+        while self.spent_time <= self.T:
+            # For each compromised enclave, infect its neighbours
             for enclave in compromised_enclaves:
                 for next in enclave.neighbours:
                     if not next.compromised:
                         infect = random.random()
                         detected = self.network_detection()
                         if infect <= next.vulnerability and not detected:
-                            loss += self.enclave_spread(enclave, times[next])
+                            loss += self.enclave_spread(enclave, self.times[next])
                             if next.compromised:
                                 compromised_enclaves.append(next)
-                            spent_time += times[next]
-                            if spent_time >= T:
+                            self.spent_time += self.times[next]
+                            if self.spent_time >= self.T:
                                 return loss
-            spent_time += 1
+            self.spent_time += 1
         return loss
+    
+    def internet_spread(self) -> float:
+        """
+        ### Algorithm 5 ###
+        Simulate the attack spreading from internally infected devices.
+        """
+        internal_loss = 0
+        for e in self.segmentation.enclaves:
+            if e.compromised:
+                for d in e.devices:
+                    if d.infected:
+                        internal_loss += self.enclave_spread(e, self.times[e], d)
+                        self.spent_time += self.times[e]
+        return internal_loss
     
 
     # ========================================================================================================================
@@ -165,11 +213,8 @@ class Simulation:
         return random.random() <= 1 - self.p_device_error
     
     def enclave_cleansing(enclave: Enclave) -> float:
-        """Simulate the cleansing of the enclave.
-        
-        :return: Cleansing loss incurred by the enclave."""
+        """Simulate the cleansing of the enclave."""
         enclave.compromised = False
-        enclave.infected_devices = []
         for device in enclave.devices:
             device.reset()
         print(f"[{enclave.name}] System update triggered. Threats removed.")
@@ -196,20 +241,20 @@ class Simulation:
         :param alert: Number of alerts detected in the enclave
         :return: True if the enclave detects an intrusion, False otherwise.
         """
-        return random.random() <= enclave.sensitibvity * alert / len(enclave.devices)
+        return random.random() <= enclave.sensitivity * alert / len(enclave.devices)
     
-    def regular_update(self, network: Network, p_update: float) -> bool:
-        """
-        Simulate a regular update of the network.
+    # def regular_update(self, seg: Segmentation, p_update: float) -> bool:
+    #     """
+    #     Simulate a regular update of the network.
 
-        :param network: The network to update
-        :return: True if the update is successful, False otherwise.
-        """
-        if random.random() <= 1 - p_update:
-            for enclave in network.enclaves:
-                self.enclave_cleansing(enclave) # Model scheduled updates so no loss
-            return True
-        return False
+    #     :param network: The network to update
+    #     :return: True if the update is successful, False otherwise.
+    #     """
+    #     if random.random() <= 1 - p_update:
+    #         for enclave in seg.enclaves:
+    #             self.enclave_cleansing(enclave) # Model scheduled updates so no loss
+    #         return True
+    #     return False
 
     def network_detection(self) -> bool:
         """
