@@ -1,7 +1,11 @@
 import random
 from typing import List
+from graphillion import GraphSet
+import random
 
-from network import Device, Enclave, Network
+from network import Device, Enclave, Segmentation
+from simulation import Simulation
+from optimization import map_elites, initialization
 
 N_ENCLAVES = 5 # Number of enclaves in the network
 N_DEVICES = 55 # Number of devices in the network (1 infected employee computer)
@@ -16,52 +20,20 @@ P_DEVICE_ERROR = 0.7  # Probability of device error
 
 R_RECONNAISSANCE = 0.5  # Reconnaissance rate
 
-class Solution:
-    def __init__(self, sensitivity: List[float], partition: List[Enclave], topology: List[List[Enclave]]):
-        """
-        :param sensitivity: The sensitivity of the enclaves in the network
-        :param partition: The partition of the network into enclaves
-        :param topology: The topology of the network (neighbours of enclaves)
-        """
-        self.sensitivity = sensitivity
-        self.partition = partition
-        self.topology = topology
-
-
-def initializtion(sol: Solution = None) -> None:
-    """
-    ### Algorithm 6 ###
-    Initialize the network with a given number of enclaves and a solution object.
-
-    :param sol: Solution object containing the network partition and topology
-    """
-    network = Network() # Initialize empty enclave list
-    for i in range(N_ENCLAVES):
-        e = Enclave(f"Enclave {i+1}")
-        e.vulnerability = VULNERABILITIES[i]
-        if sol:
-            e.sensitibvity = sol.sensitivity[i]
-            e.devices = sol.partition[i]
-            for j in range(random.randint(0, DYN_DEVICES)):
-                e.add_device(Device(f"Low value device {j+1}", device_type="Low value device"))
-            e.neighbours = sol.topology[i]
-        network.enclaves.append(e)
-
-
 def main():
-    # Initialize the network with enclaves and devices
-    network = Network()
-    initializtion(N_ENCLAVES)
+    universe = [(i, j) for i in range(N_ENCLAVES) for j in range(N_ENCLAVES) if i < j]
+    GraphSet.set_universe(universe)
 
-    # Create a solution object with sensitivity, partition, and topology
-    solution = Solution(sensitivity=[0.1] * N_ENCLAVES, partition=[], topology=[])
+    # TODO: Generate all connected graphs
+    degree_constraints = {i: range(1, N_ENCLAVES) for i in range(N_ENCLAVES)}
+    graphs = GraphSet.graphs(vertex_groups=[range(N_ENCLAVES)], degree_constraints=degree_constraints, num_edges=4)
+    print("Number of connected graphs with 5 edges:", len(graphs))
+    print("Graphs:", graphs)
 
-    # Initialize the network with the solution object
-    initializtion(N_ENCLAVES, solution)
-
-    # Print the initialized network and solution
-    print(network)
-    print(solution)
+    devices = [Device(f"Device {i}", "high_value") for i in range(N_DEVICES)]
+    segmentations, neighbours, distances = initialization(graphs, devices, num_enclaves=N_ENCLAVES, K=5)
+    archive = map_elites(segmentations, neighbours, distances, generations=5)
+    print("Archive size:", len(archive))
 
 
 if __name__ == "__main__":

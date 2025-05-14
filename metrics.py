@@ -17,7 +17,7 @@ def security_loss(simulations: List[Simulation]) -> float:
         # Sum of compromise value of all turned down devices
         compromise_loss = sum([d.compromise_value for d in seg.turned_down_devices()])
         # The cleansing loss if any
-        cleansing_loss = s.cleansing_loss()
+        cleansing_loss = s.cleansing_loss
         # Sum of all losses
         loss += information_loss + compromise_loss + cleansing_loss
     return loss / len(simulations) if simulations else 0
@@ -36,7 +36,11 @@ def performance_loss(segmentation: Segmentation) -> float:
             if "performance_affecting" in device.device_group:
                 num += 1
         # Increased latency = the number of performance affecting devices * the distance to the internet
-        loss += num * enclave.distance_to_internet
+        if enclave.distance_to_internet:
+            loss += num * enclave.distance_to_internet
+        elif num > 0:
+            # If an enclave with performing affecting devices is not connected to the Internet, return infinity
+            return float("inf")
     return loss
 
 def resilience_loss(segmentation: Segmentation) -> float:

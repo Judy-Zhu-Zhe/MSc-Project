@@ -43,6 +43,7 @@ class Simulation:
         
         :return: Total loss incurred by the attack.
         """
+        print("[+] Simulating network attack...")
         return self.network_spread()
     
     def simulate_adaption(self) -> float:
@@ -51,6 +52,7 @@ class Simulation:
         
         :return: Total loss incurred by the attack.
         """
+        print("[+] Simulating adaption attack...")
         return self.internet_spread()
 
     # ========================================================================================================================
@@ -65,6 +67,7 @@ class Simulation:
         :param device: The device to compromise
         :return: Tuple (turned_down, loss) where turned_down is True if the device was compromised and loss is the loss incurred.
         """
+        print(f"    [{device.name}] Device compromised.")
         loss = 0
         device.infected = True
         if not device.has_been_infected:
@@ -84,6 +87,7 @@ class Simulation:
 
         :param time: The time to spend in the enclave.
         """
+        print(f"    [Enclave {enclave.id}] compromise spreading from {infected_device.name if infected_device else 'Internet'}...")
         loss = 0
         alert = 0
         enclave.compromised = True
@@ -98,18 +102,19 @@ class Simulation:
         if is_turned_down:
             alert += 1
             if self.enclave_detection(enclave, alert):
+                print("     Enclave cleansing triggered.")
                 loss += self.cleansing_loss_with_investigation(enclave)
                 self.enclave_cleansing(enclave)
                 return loss
         
         recon_time = self.reconnaissance(enclave, time)
         for _ in range(recon_time, time):
-            # TODO: Select k best devices to infect
             to_infect = self.select_k_best(5, enclave.devices)
             for device in to_infect:
                 # Add alert if the infection is detected (and blocked) or if the device is turned down
                 test_alert = False
                 if self.device_IDS_detect():
+                    print(f"     [{device.name}] Device infection detected and blocked.")
                     test_alert = True
                 else:
                     is_turned_down, compromise_loss = self.device_compromise(infected_device, self.C_appetite)
@@ -119,6 +124,7 @@ class Simulation:
                 if test_alert:
                     alert += 1
                     if self.enclave_detection(enclave, alert):
+                        print("     Enclave cleansing triggered.")
                         loss += self.cleansing_loss_with_investigation(enclave)
                         self.enclave_cleansing(enclave)
                         return loss
@@ -168,19 +174,24 @@ class Simulation:
         loss = 0
         # spent_time = 0
         while self.spent_time <= self.T:
+            print(f"Time: [{self.spent_time}/{self.T}]")
             # For each compromised enclave, infect its neighbours
             for enclave in compromised_enclaves:
-                for next in enclave.neighbours:
+                for n in enclave.neighbours:
+                    next = self.segmentation.enclaves[n]
                     if not next.compromised:
                         infect = random.random()
+                        print(f"    Infecting [Enclave {next.id}] with probability {infect}...")
                         detected = self.network_detection()
                         if infect <= next.vulnerability and not detected:
-                            loss += self.enclave_spread(enclave, self.times[next])
+                            loss += self.enclave_spread(enclave, self.times[n])
                             if next.compromised:
                                 compromised_enclaves.append(next)
-                            self.spent_time += self.times[next]
+                            self.spent_time += self.times[n]
                             if self.spent_time >= self.T:
                                 return loss
+                        elif detected:
+                            print(f"    [Enclave {next.id}] Infection detected and blocked.")
             self.spent_time += 1
         return loss
     
@@ -217,7 +228,7 @@ class Simulation:
         enclave.compromised = False
         for device in enclave.devices:
             device.reset()
-        print(f"[{enclave.name}] System update triggered. Threats removed.")
+        print(f"    [{enclave.id}] System update triggered. Threats removed.")
     
     def cleansing_loss_with_investigation(enclave: Enclave) -> int:
         """Trigger cleansing with investigation 

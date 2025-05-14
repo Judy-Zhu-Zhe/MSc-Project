@@ -66,18 +66,19 @@ class Device:
 # ========================================================================================================================
 
 class Enclave:
-    def __init__(self, name: str, vulnerability: float = 0, sensitivity: float = 0, devices: List[Device] = [], neighbours: List["Enclave"] = []):
+    def __init__(self, id: int, vulnerability: float = 0, sensitivity: float = 0, devices: List[Device] = [], neighbours: List[int] = []):
         """
-        :param name: Identifier for the enclave
+        :param id: Identifier for the enclave
         :param vulnerability: Vulnerability of the enclave to compromise
         :param sensitivity: How quickly enclave cleansing is triggered in the event of a compromise
         :param devices: List of devices within the enclave
+        :param neighbours: List of neighbouring enclave indices
         """
-        self.name = name
+        self.id = id
         self.vulnerability = vulnerability
         self.sensitivity = sensitivity
         self.devices: List[Device] = devices
-        self.neighbours: List[Enclave] = neighbours
+        self.neighbours: List[int] = neighbours
         self.compromised = False
         self.cleansing_loss = 0
         self.distance_to_internet: int | None = None  # Number of hops to the internet
@@ -89,7 +90,7 @@ class Enclave:
         if device in self.devices:
             self.devices.remove(device)
         else:
-            raise ValueError(f"Device {device.name} not found in enclave {self.name}.")
+            raise ValueError(f"Device {device.name} not found in enclave {self.id}.")
         
     def num_devices(self) -> int:
         """Returns the number of devices in the enclave."""
@@ -118,12 +119,12 @@ class Enclave:
         return None # No path found
 
     def __repr__(self):
-        return f"<Enclave {self.name}: {len(self.devices)} devices, Compromised={self.compromised}>"
+        return f"<Enclave {self.id}: {len(self.devices)} devices, Compromised={self.compromised}>"
     
 class Internet(Enclave):
     def __init__(self):
         super().__init__("Internet")
-        self.name = "Internet"
+        self.id = 0
         self.distance_to_internet = 0
         self.compromised = True
         
@@ -190,13 +191,13 @@ class Segmentation:
         :param sensitivities: The sensitivities of the enclaves
         :param vulnerability: The vulnerabilities of the enclaves
         """
-        num_enclaves = len(self.enclaves)
+        num_enclaves = len(topology)
         self.topology_matrix = [[0] * num_enclaves for _ in range(num_enclaves)]
 
         # Create enclaves based on the partition
-        for i in range(len(topology)):
+        for i in range(1, len(topology)):
             e = Enclave(
-                f"Enclave {i+1}", 
+                id=i, 
                 vulnerability=vulnerability[i], 
                 sensitivity=sensitivities[i], 
                 devices=partition[i]
@@ -208,40 +209,44 @@ class Segmentation:
 
         # Connect enclaves based on the topology
         for i, neighbours in enumerate(topology):
-            self.enclaves[i].neighbours = [self.enclaves[j] for j in neighbours]
+            self.enclaves[i].neighbours = neighbours
             for j in neighbours:
                 self.topology_matrix[i][j] = 1
                 self.topology_matrix[j][i] = 1
 
         self.update_distances()  # Update distances to the internet for all enclaves
 
+        # print("Topology matrix:")
+        # for row in self.topology_matrix:
+        #     print(row)
+
+        # print("Enclaves:")
+        # for enclave in self.enclaves:
+        #     print(enclave)
 
     def add_enclave(self, enclave: Enclave):
         self.enclaves.append(enclave)
-        # # Update distance to internet for the new enclave
-        # known = [n.distance_to_internet for n in enclave.neighbours if n.distance_to_internet]
-        # if known:
-        #     enclave.distance_to_internet = min(known) + 1
-
+    
     def connect_enclaves(self, e1: Enclave, e2: Enclave):
-        e1.neighbours.append(e2)
-        e2.neighbours.append(e1)
+        e1.neighbours.append(e2.id)
+        e2.neighbours.append(e1.id)
         self.update_distances()
 
     def remove_enclave(self, enclave: Enclave):
         if enclave in self.enclaves:
             self.enclaves.remove(enclave)
             for e in self.enclaves:
-                if enclave in e.neighbours:
+                if enclave.id in e.neighbours:
                     e.neighbours.remove(enclave)
             self.update_distances()
         else:
-            raise ValueError(f"Enclave {enclave.name} not found in network.")
+            raise ValueError(f"Enclave {enclave.id} not found in network.")
         
     def update_distances(self):
         """Updates the distances to the internet for all enclaves."""
         for e in self.enclaves:
-            e.distance_to_internet = None
+            if e != self.internet:
+                e.distance_to_internet = None
         # BFS to calculate distances from the internet
         visited = set()
         queue = deque([(self.internet, 0)])
@@ -249,9 +254,38 @@ class Segmentation:
             current, dist = queue.popleft()
             current.distance_to_internet = dist
             visited.add(current)
-            for neighbor in current.neighbours:
+            for n in current.neighbours:
+                neighbor = self.enclaves[n]
                 if neighbor not in visited and neighbor.distance_to_internet is None:
                     queue.append((neighbor, dist + 1))
+
+    def update_partition(self, partition: List[List[Device]]):
+        """
+        Updates the partition of the network.
+
+        :param partition: The new partition of the network (list of devices in each enclave)
+        """
+        assert len(partition) == len(self.enclaves), "Partition must have the same length as enclaves."
+        self.enclaves = [self.internet]  # Reset enclaves to only the internet
+        for i in range(1, len(partition)):
+            e = Enclave(
+                id=i, 
+                vulnerability=self.enclaves[i].vulnerability, 
+                sensitivity=self.enclaves[i].sensitivity,
+                devices=partition[i]
+                )
+            self.add_enclave(e)
+        self.update_distances()
+
+    def update_sensitivities(self, sensitivities: List[float]):
+        """
+        Updates the sensitivities of the enclaves.
+
+        :param sensitivities: The new sensitivities of the enclaves
+        """
+        assert len(sensitivities) == len(self.enclaves), "Sensitivities must have the same length as enclaves."
+        for i in range(len(sensitivities)):
+            self.enclaves[i].sensitivity = sensitivities[i]
 
     def n_enclaves(self) -> int:
         """Returns the number of enclaves in the network."""
@@ -269,8 +303,8 @@ class Segmentation:
         """Returns a list of devices that are turned down."""
         return [d for e in self.enclaves for d in e.devices if d.turned_down]
     
-    def topology(self) -> List[List[Enclave]]:
-        """Returns the topology of the network."""
+    def neighbours(self) -> List[List[int]]:
+        """Returns the neighbours of the network."""
         return [e.neighbours for e in self.enclaves]
     
     def partition(self) -> List[List[Device]]:

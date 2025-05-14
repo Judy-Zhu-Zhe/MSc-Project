@@ -52,28 +52,25 @@ def discretize(descriptor: Tuple, bins: Tuple[int, ...]) -> Tuple:
 # ========================================================================================================================
 
 def mutate(
-    parent_index: int,
-    segmentations: List[Segmentation],
-    neighbours_table: List[List[int]],
-    distances_table: List[List[float]],
-    eta: float = 20.0,
-    mutate_prob: float = 0.3
+        parent_index: int,
+        segmentations: List[Segmentation],
+        neighbours_table: List[List[int]],
+        distances_table: List[List[float]],
+        eta: float = 20.0
 ) -> Segmentation:
     """Mutates a segmentation by modifying its topology, device distribution, and sensitivities."""
     parent = segmentations[parent_index]
 
     # Mutate topology (deep copy for isolation)
-    new_topology = mutate_topology(parent_index, neighbours_table, distances_table, segmentations)
+    new_segmentation = mutate_topology(parent_index, segmentations, neighbours_table, distances_table)
     # Mutate device partition
-    new_partition = mutate_device_distribution(parent.partition())
+    new_partition = mutate_device_distribution(parent.neighbours())
     # Mutate sensitivities
-    new_sensitivities = mutate_enclave_sensitivity(parent.sensitivities(), mutate_prob=mutate_prob, eta=eta)
+    new_sensitivities = [mutate_enclave_sensitivity(s, eta=eta) for s in parent.sensitivities()]
 
-    return Segmentation(
-        topology=new_topology,
-        partition=new_partition,
-        sensitivities=new_sensitivities
-    )
+    new_segmentation.update_partition(new_partition)
+    new_segmentation.update_sensitivities(new_sensitivities)
+    return new_segmentation
 
 def mutate_topology(seg_index: int, segmentations: List[Segmentation], neighbours_table: List[List[int]], distances_table: List[List[float]]) -> Segmentation:
     """
@@ -93,7 +90,7 @@ def mutate_topology(seg_index: int, segmentations: List[Segmentation], neighbour
     weights = [1 / d if d > 0 else 1e9 for d in distances]
     probabilities = [w / sum(weights) for w in weights]
 
-    # Choose a neighbor based on weighted probability and return the mutation
+    # Choose a neighbour based on weighted probability and return the mutation
     selected_index = random.choices(neighbours, weights=probabilities, k=1)[0]
     return segmentations[selected_index]
 
@@ -167,12 +164,11 @@ SECURITY_WEIGHT = 1
 PERFORMANCE_WEIGHT = 0
 RESILIENCE_WEIGHT = 0
 
-def initialization(graphs, universe, devices: List[Device], num_enclaves: int, K: int = 5) -> Tuple[List[Segmentation], List[List[int]], List[List[float]]]:
+def initialization(graphs: GraphSet, devices: List[Device], num_enclaves: int, K: int = 5) -> Tuple[List[Segmentation], List[List[int]], List[List[float]]]:
     """
     Initialize Segmentation objects using Graphillion-generated valid topologies.
 
     :param graphs: List of Graphillion graphs (each a list of (int, int) edges)
-    :param universe: The universe of edges used to define GraphSet
     :param devices: List of Device objects
     :param num_enclaves: Number of enclaves in each segmentation
     :param K: K = Number of neighbors for KNN
@@ -216,11 +212,12 @@ def initialization(graphs, universe, devices: List[Device], num_enclaves: int, K
             neighbours_table.append([idx for idx, _ in top_n])
             distances_table.append([d for _, d in top_n])
 
+    print(f"Initialization done!")
     return segmentations, neighbours_table, distances_table
 
 def fitness(seg: Segmentation, generations: int = 50) -> float:
     """Calculates the fitness of a segmentation based on its behavior descriptors."""
-    simulations = [Simulation(seg, ) for _ in range(generations)]
+    simulations = [Simulation(seg, T=2, times=[1, 1, 1, 1, 1]) for _ in range(generations)]
     loss = security_loss(simulations) * SECURITY_WEIGHT + \
            performance_loss(seg) * PERFORMANCE_WEIGHT + \
            resilience_loss(seg) * RESILIENCE_WEIGHT
@@ -228,7 +225,7 @@ def fitness(seg: Segmentation, generations: int = 50) -> float:
 
 # MAP-Elites main loop
 def map_elites(
-    initial_segmentations: List[Segmentation],
+    segmentations: List[Segmentation],
     neighbours_table: List[List[int]],
     distances_table: List[List[float]],
     generations: int = 100,
@@ -245,6 +242,7 @@ def map_elites(
     :return: Archive grid mapping behavior bins to (segmentation, fitness)
     """
     grid: Dict[Tuple, Tuple[Segmentation, float]] = {}
+    initial_segmentations = random.sample(segmentations, 5)
 
     # === INITIAL POPULATION EVALUATION ===
     for i, seg in enumerate(initial_segmentations):
@@ -256,30 +254,18 @@ def map_elites(
 
     # === EVOLUTIONARY LOOP ===
     for _ in range(generations):
+        print(f"\n ====== Generation {_ + 1}/{generations} ====== \n")
         for _ in range(len(initial_segmentations)):
             parent_index = random.randint(0, len(initial_segmentations) - 1)
-            child = mutate(parent_index, initial_segmentations, neighbours_table, distances_table)
+            child = mutate(parent_index, segmentations, neighbours_table, distances_table)
 
             desc = behavior_descriptors(child)
             key = discretize(desc, bins)
             f = fitness(child)
 
             if key not in grid or f > grid[key][1]:
+                print(f"New elite found in bin {key}: fitness {f}")
                 grid[key] = (child, f)
 
+
     return grid
-
-N_encalves = 5
-
-universe = [(i, j) for i in range(N_encalves) for j in range(N_encalves) if i < j]
-GraphSet.set_universe(universe)
-
-# Generate all connected graphs with exactly 3 edges
-graphs = GraphSet.graphs(num_edges=3)
-print("Number of connected graphs with 3 edges:", len(graphs))
-print(graphs)
-
-devices = [Device(f"Device {i}", "high_value") for i in range(55)]
-segmentations, neighbours, distances = initialization(graphs, universe, devices, num_enclaves=5, K=5)
-archive = map_elites(segmentations, neighbours, distances, generations=10)
-print("Archive size:", len(archive))
