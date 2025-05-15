@@ -102,7 +102,7 @@ class Simulation:
         if is_turned_down:
             alert += 1
             if self.enclave_detection(enclave, alert):
-                print("     Enclave cleansing triggered.")
+                print("     -- Enclave cleansing triggered.")
                 loss += self.cleansing_loss_with_investigation(enclave)
                 self.enclave_cleansing(enclave)
                 return loss
@@ -124,7 +124,7 @@ class Simulation:
                 if test_alert:
                     alert += 1
                     if self.enclave_detection(enclave, alert):
-                        print("     Enclave cleansing triggered.")
+                        print("     -- Enclave cleansing triggered.")
                         loss += self.cleansing_loss_with_investigation(enclave)
                         self.enclave_cleansing(enclave)
                         return loss
@@ -181,17 +181,21 @@ class Simulation:
                     next = self.segmentation.enclaves[n]
                     if not next.compromised:
                         infect = random.random()
-                        print(f"    Infecting [Enclave {next.id}] with probability {infect}...")
+                        print(f"    Infecting [Enclave {next.id}] with probability {infect:.2f}.")
                         detected = self.network_detection()
-                        if infect <= next.vulnerability and not detected:
-                            loss += self.enclave_spread(enclave, self.times[n])
-                            if next.compromised:
-                                compromised_enclaves.append(next)
-                            self.spent_time += self.times[n]
-                            if self.spent_time >= self.T:
-                                return loss
-                        elif detected:
-                            print(f"    [Enclave {next.id}] Infection detected and blocked.")
+                        if infect <= next.vulnerability:
+                            if not detected:
+                                print(f"    -- Infection successful.")
+                                loss += self.enclave_spread(enclave, self.times[n])
+                                if next.compromised:
+                                    compromised_enclaves.append(next)
+                                self.spent_time += self.times[n]
+                                if self.spent_time >= self.T:
+                                    return loss
+                            else:
+                                print(f"    -- Infection detected and blocked.")
+                        else:
+                            print(f"    -- Infection failed.")
             self.spent_time += 1
         return loss
     

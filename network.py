@@ -270,6 +270,7 @@ class Segmentation:
         for i in range(1, len(partition)):
             e = Enclave(
                 id=i, 
+                # TODO: list index out of range
                 vulnerability=self.enclaves[i].vulnerability, 
                 sensitivity=self.enclaves[i].sensitivity,
                 devices=partition[i]
