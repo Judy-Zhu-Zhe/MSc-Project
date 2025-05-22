@@ -36,8 +36,8 @@ def performance_loss(segmentation: Segmentation) -> float:
             if "performance_affecting" in device.device_group:
                 num += 1
         # Increased latency = the number of performance affecting devices * the distance to the internet
-        if enclave.distance_to_internet:
-            loss += num * enclave.distance_to_internet
+        if enclave.dist_to_internet:
+            loss += num * enclave.dist_to_internet
         elif num > 0:
             # If an enclave with performing affecting devices is not connected to the Internet, return infinity
             return float("inf")

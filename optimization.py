@@ -2,9 +2,10 @@ import statistics
 import random
 import math
 from typing import List, Tuple, Dict
+from dataclasses import dataclass
 from graphillion import GraphSet
 
-from network import Device, Enclave, Segmentation
+from network import Device, Enclave, Topology, Segmentation
 from simulation import Simulation
 from metrics import security_loss, performance_loss, resilience_loss
 
@@ -16,31 +17,52 @@ def num_high_degree_nodes(segmentation: Segmentation) -> int:
     """Returns the number of enclaves with more than 2 neighbours."""
     return sum(1 for e in segmentation.enclaves if len(e.neighbours) > 2)
 
-def std_enclave_size(segmentation: Segmentation) -> float:
+def std_devices(segmentation: Segmentation) -> float:
     """Returns the standard deviation of the number of devices in enclaves."""
     if len(segmentation.enclaves) > 1:
         return statistics.stdev([len(e.devices) for e in segmentation.enclaves])
     return 0.0
 
-def std_device_group(segmentation: Segmentation, group: str) -> float:
-    """Returns the standard deviation of the number of devices in a specific group across enclaves."""
+def std_high_value(segmentation: Segmentation) -> float:
+    """Returns the standard deviation of the number of high-value devices in enclaves."""
     if len(segmentation.enclaves) > 1:
-        return statistics.stdev([sum(1 for d in e.devices if group in d.device_group) for e in segmentation.enclaves])
+        return statistics.stdev([sum(1 for d in e.devices if "high_value" in d.device_group) for e in segmentation.enclaves])
+    return 0.0
+
+def std_web_facing(segmentation: Segmentation) -> float:
+    """Returns the standard deviation of the number of web-facing devices in enclaves."""
+    if len(segmentation.enclaves) > 1:
+        return statistics.stdev([sum(1 for d in e.devices if "performance_affecting" in d.device_group) for e in segmentation.enclaves])
+    return 0.0
+
+def std_resilience(segmentation: Segmentation) -> float:
+    """Returns the standard deviation of the number of resilience-affected devices in enclaves."""
+    if len(segmentation.enclaves) > 1:
+        return statistics.stdev([sum(1 for d in e.devices if "resilience_affected" in d.device_group) for e in segmentation.enclaves])
     return 0.0
 
 def distance_high_val(segmentation: Segmentation) -> float:
     """Returns the sum of distances to the internet for high-value devices."""
-    return sum(e.distance_to_internet for e in segmentation.enclaves for d in e.devices if "high_value" in d.device_group and e.distance_to_internet is not None)
+    return sum(e.dist_to_internet for e in segmentation.enclaves for d in e.devices if "high_value" in d.device_group and e.dist_to_internet)
 
-def behavior_descriptors(seg: Segmentation) -> Tuple[int, float, float, float, float, int]:
-    """Calculates behavior descriptors for a given segmentation."""
-    nb_high_deg = num_high_degree_nodes(seg)
-    std_dev = std_enclave_size(seg)
-    std_high_val = std_device_group(seg, "high_value")
-    std_web_facing = std_device_group(seg, "performance_affecting")
-    std_res = std_device_group(seg, "resilience_affected")
-    dist_high_val = distance_high_val(seg)
-    return (nb_high_deg, std_dev, std_high_val, std_web_facing, std_res, dist_high_val)
+DESCRIPTOR_FUNCTIONS = {
+    "nb_high_deg_nodes": num_high_degree_nodes,
+    "std_devices": std_devices,
+    "std_high_value": std_high_value,
+    "std_web_facing": std_web_facing,
+    "std_resilience": std_resilience,
+    "distance_high_val": distance_high_val,
+}
+
+def behavior_descriptors(seg: Segmentation, descriptors: List[str] = None) -> Tuple:
+    """Computes behavior descriptors dynamically based on selected keys."""
+    if not descriptors:
+        descriptors = list(DESCRIPTOR_FUNCTIONS.keys())
+    try:
+        values = [DESCRIPTOR_FUNCTIONS[name](seg) for name in descriptors]
+    except KeyError as e:
+        raise ValueError(f"Invalid descriptor name: {e}. Available descriptors are: {list(DESCRIPTOR_FUNCTIONS.keys())}")
+    return tuple(values)
 
 def discretize(descriptor: Tuple, bins: Tuple[int, ...]) -> Tuple:
     """Discretizes the behavior descriptor into bins."""
@@ -52,36 +74,35 @@ def discretize(descriptor: Tuple, bins: Tuple[int, ...]) -> Tuple:
 # ========================================================================================================================
 
 def mutate(
-        parent_index: int,
-        segmentations: List[Segmentation],
+        parent: Segmentation,
+        topology_list: List[Topology],
         neighbours_table: List[List[int]],
         distances_table: List[List[float]],
-        eta: float = 20.0
+        eta: float = 20.0,
+        n_low_value_device: int = 20,
 ) -> Segmentation:
     """Mutates a segmentation by modifying its topology, device distribution, and sensitivities."""
-    parent = segmentations[parent_index]
-
-    # Mutate topology (deep copy for isolation)
-    new_segmentation = mutate_topology(parent_index, segmentations, neighbours_table, distances_table)
+    # Mutate topology
+    parent_index = parent.topology.id
+    new_topology = mutate_topology(parent_index, topology_list, neighbours_table, distances_table)
     # Mutate device partition
-    new_partition = mutate_device_distribution(parent.neighbours())
+    new_partition = mutate_device_distribution(parent.partition())
     # Mutate sensitivities
     new_sensitivities = [mutate_enclave_sensitivity(s, eta=eta) for s in parent.sensitivities()]
 
-    new_segmentation.update_partition(new_partition)
-    new_segmentation.update_sensitivities(new_sensitivities)
+    new_segmentation = Segmentation(
+        topology=new_topology,
+        partition=new_partition,
+        sensitivities=new_sensitivities,
+        vulnerabilities=parent.vulnerabilities(),
+        n_low_value_device=n_low_value_device,
+    )
     return new_segmentation
 
-def mutate_topology(seg_index: int, segmentations: List[Segmentation], neighbours_table: List[List[int]], distances_table: List[List[float]]) -> Segmentation:
+def mutate_topology(seg_index: int, topology_list: List[Topology], neighbours_table: List[List[int]], distances_table: List[List[float]]) -> Topology:
     """
     ### Equation 7 ###
     Mutate the topology of the segmentation using KNN-based neighbor sampling.
-    
-    :param seg_index: Index of the current segmentation
-    :param segmentations: The list of all segmentations
-    :param neighbours_table: List of neighbor indices for each segmentation
-    :param distances_table: Corresponding distances for each neighbor
-    :return: Mutated topology as a list of neighbor indices per enclave
     """
     neighbours = neighbours_table[seg_index]
     distances = distances_table[seg_index]
@@ -91,30 +112,26 @@ def mutate_topology(seg_index: int, segmentations: List[Segmentation], neighbour
     probabilities = [w / sum(weights) for w in weights]
 
     # Choose a neighbour based on weighted probability and return the mutation
-    selected_index = random.choices(neighbours, weights=probabilities, k=1)[0]
-    return segmentations[selected_index]
+    selected_index = random.choices(neighbours, weights=probabilities)[0]
+    return topology_list[selected_index]
 
 def mutate_device_distribution(partition: List[List[Device]]) -> List[List[Device]]:
-    """
-    Mutates device distribution by randomly moving one device to a different enclave.
-
-    :param partition: Current list of devices per enclave
-    :return: New mutated partition
-    """
-    # Deep copy the partition
-    new_partition = [list(devices) for devices in partition]
-
-    # Select a non-empty enclave
-    non_empty_indices = [i for i, p in enumerate(new_partition) if p]
-    if len(non_empty_indices) < 1:
+    """Mutates device distribution by randomly moving one device to a different enclave."""
+    enclave_indices = list(range(1, len(partition))) # Non-Internet enclaves
+    if len(enclave_indices) < 1:
         return new_partition  # No mutation possible
-
+    
+    # Deep copy of the partition to avoid modifying the original
+    new_partition = [list(devices) for devices in partition]
+    assert new_partition, "Partition should not be empty"
+    
+    # Remove a random device from a randomly-selected non-empty enclave
+    non_empty_indices = [i for i, devices in enumerate(new_partition) if devices]
     from_idx = random.choice(non_empty_indices)
     device = random.choice(new_partition[from_idx])
     new_partition[from_idx].remove(device)
 
     # Select a new enclave different from the current one
-    enclave_indices = list(range(len(new_partition)))
     enclave_indices.remove(from_idx)
     to_idx = random.choice(enclave_indices)
     new_partition[to_idx].append(device)
@@ -130,7 +147,6 @@ def mutate_enclave_sensitivity(s_parent: float, eta: float = 20.0, s_upper: floa
     :param eta: Sensitivity hyperparameter.
     :param s_upper: Sensitivity upper bound.
     :param s_lower: Sensitivity lower bound.
-    
     :return: Child sensitivity value.
     """
     r = random.random()
@@ -160,112 +176,128 @@ def topology_distance(matrix1: List[List[int]], matrix2: List[List[int]]) -> flo
 #                                                   OPERATORS
 # ========================================================================================================================
 
-SECURITY_WEIGHT = 1
-PERFORMANCE_WEIGHT = 0
-RESILIENCE_WEIGHT = 0
-
-def initialization(graphs: GraphSet, devices: List[Device], num_enclaves: int, K: int = 5) -> Tuple[List[Segmentation], List[List[int]], List[List[float]]]:
+def topology_neighbours(graphs: GraphSet, num_enclaves: int, K: int = 5) -> Tuple[List[Topology], List[List[int]], List[List[float]]]:
     """
-    Initialize Segmentation objects using Graphillion-generated valid topologies.
+    Calculate KNN neighbor and distance tables for a list of graphs.
 
-    :param graphs: List of Graphillion graphs (each a list of (int, int) edges)
-    :param devices: List of Device objects
-    :param num_enclaves: Number of enclaves in each segmentation
-    :param K: K = Number of neighbors for KNN
-    :return: List of Segmentation objects
+    :param graphs: List of Graphillion graphs, where each graph is a list of (int, int) edges.
+    :param num_enclaves: Number of enclaves (nodes) in each topology.
+    :param devices: List of Device objects to assign to enclaves.
+    :param K: Number of nearest neighbors to compute for each topology.
+
+    :return: A tuple containing:
+        - topology_list: List of Topology objects initialized from the input graphs.
+        - neighbours_table: Top K nearest neighbors for each topology, 
+        - distance table: Their corresponding distances)
     """
-    segmentations: List[Segmentation] = []
     assert len(graphs) > 0, "No graphs provided for initialization"
+    topology_list: List[Topology] = [Topology(id=i, num_enclaves=num_enclaves, topology=g) for i, g in enumerate(graphs)]
+    adj_matrices = [topology.adj_matrix for topology in topology_list]
+    distances_table = []
+    neighbours_table = []
 
-    for g in graphs:
-        # Build neighbor relations from the Graphillion graph (edge list)
-        topology = [[] for _ in range(num_enclaves)]
-        for u, v in g:
-            topology[u].append(v)
-            topology[v].append(u)
+    for i, mat_i in enumerate(adj_matrices):
+        distances = []
+        for j, mat_j in enumerate(adj_matrices):
+            dist = topology_distance(mat_i, mat_j)
+            distances.append((j, dist))
 
-        # Randomly assign devices to enclaves
-        partition = [[] for _ in range(num_enclaves)]
-        for device in devices:
-            i = random.randint(0, num_enclaves - 1)
-            partition[i].append(device)
+        distances.sort(key=lambda x: x[1]) # Sort by distance
+        top_k = distances[1 : K + 1]  # skip self (distance 0)
 
-        # TODO: Generate sensitivities and vulnerabilities
-        sensitivities = [random.uniform(0, 1) for _ in range(num_enclaves)]
-        vulnerabilities = [random.uniform(0, 1) for _ in range(num_enclaves)]
-
-        # Create segmentation
-        segmentation = Segmentation(topology, partition, sensitivities, vulnerabilities)
-        segmentations.append(segmentation)
-
-        # Compute distance and neighbor tables
-        distances_table = []
-        neighbours_table = []
-        adjacency_matrices = [seg.topology_matrix for seg in segmentations]
-        for i, mat_i in enumerate(adjacency_matrices):
-            distances = []
-            for j, mat_j in enumerate(adjacency_matrices):
-                dist = topology_distance(mat_i, mat_j)
-                distances.append((j, dist))
-            distances.sort(key=lambda x: x[1])
-            top_n = distances[1 : K + 1]  # skip self (distance 0)
-            neighbours_table.append([idx for idx, _ in top_n])
-            distances_table.append([d for _, d in top_n])
+        neighbours_table.append([idx for idx, _ in top_k])
+        distances_table.append([dist for _, dist in top_k])
 
     print(f"Initialization done!")
-    return segmentations, neighbours_table, distances_table
+    return topology_list, neighbours_table, distances_table
 
-def fitness(seg: Segmentation, generations: int = 50) -> float:
+def random_segmentation(topology: Topology, devices: List[Device], sensitivities: List[float], vulnerabilities: List[float]) -> Segmentation:
+    """Generates a random segmentation given a topology."""
+    partition = [[] for _ in range(topology.num_enclaves)]
+    for device in devices:
+        enclave_index = random.randint(1, topology.num_enclaves - 1) # Randomly assign to a non-Internet enclave
+        partition[enclave_index].append(device)
+    return Segmentation(
+        topology=topology,
+        partition=partition,
+        sensitivities=sensitivities,
+        vulnerabilities=vulnerabilities
+    )
+
+@dataclass
+class MapElitesConfig:
+    devices: List
+    sensitivities: List[float]
+    vulnerabilities: List[float]
+    generations: int
+    bins: Tuple[int, ...]
+    n_simulations: int
+    total_sim_time: int
+    times_in_enclaves: List[int]
+    descriptors: List[str]
+    p_update: float
+    p_network_error: float
+    p_device_error: float
+    r_reconnaissance: float
+    n_low_value_device: int
+    c_appetite: float
+    i_appetite: float
+    beta: float
+    metric_weights: List[float]
+
+def fitness(config: MapElitesConfig, seg: Segmentation, n_simulations: int, total_sim_time: int, times_in_enclaves: List[int]) -> float:
     """Calculates the fitness of a segmentation based on its behavior descriptors."""
-    simulations = [Simulation(seg, T=2, times=[1, 1, 1, 1, 1]) for _ in range(generations)]
-    loss = security_loss(simulations) * SECURITY_WEIGHT + \
-           performance_loss(seg) * PERFORMANCE_WEIGHT + \
-           resilience_loss(seg) * RESILIENCE_WEIGHT
+    simulations = [
+        Simulation(seg=seg, 
+                   T=total_sim_time, 
+                   times=times_in_enclaves,
+                   C_appetite=config.c_appetite,
+                   I_appetite=config.i_appetite,
+                   beta=config.beta,
+                   r_reconnaissance=config.r_reconnaissance,
+                   p_update=config.p_update,
+                   p_network_error=config.p_network_error,
+                   p_device_error=config.p_device_error
+                ) for _ in range(n_simulations)]
+    loss = security_loss(simulations) * config.metric_weights[0] + \
+           performance_loss(seg) * config.metric_weights[1] + \
+           resilience_loss(seg) * config.metric_weights[2]
     return - loss
 
 # MAP-Elites main loop
-def map_elites(
-    segmentations: List[Segmentation],
-    neighbours_table: List[List[int]],
-    distances_table: List[List[float]],
-    generations: int = 100,
-    bins: Tuple[int, ...] = (1, 1, 1, 1, 1, 10),
-) -> Dict[Tuple, Tuple[Segmentation, float]]:
+def map_elites(topology_list: List[Topology], 
+               neighbours_table: List[List[int]], 
+               distances_table: List[List[float]], 
+               config: MapElitesConfig
+               ) -> Tuple[Segmentation, float]:
     """
     MAP-Elites evolutionary algorithm for exploring segmentation space.
 
-    :param initial_segmentations: List of initial Segmentations
-    :param neighbours_table: KNN neighbor indices for each topology
-    :param distances_table: Corresponding KNN distances
-    :param generations: Number of generations to evolve
-    :param bins: Discretization bin sizes for behavior descriptors
     :return: Archive grid mapping behavior bins to (segmentation, fitness)
     """
     grid: Dict[Tuple, Tuple[Segmentation, float]] = {}
-    initial_segmentations = random.sample(segmentations, 5)
+    initial_segmentations = [random_segmentation(t, config.devices, config.sensitivities, config.vulnerabilities) for t in topology_list]
 
     # === INITIAL POPULATION EVALUATION ===
     for i, seg in enumerate(initial_segmentations):
-        desc = behavior_descriptors(seg)
-        key = discretize(desc, bins)
-        f = fitness(seg)
+        desc = behavior_descriptors(seg, config.descriptors)
+        key = discretize(desc, config.bins)
+        f = fitness(config, seg, config.n_simulations, config.total_sim_time, config.times_in_enclaves)
         if key not in grid or f > grid[key][1]:
             grid[key] = (seg, f)
 
     # === EVOLUTIONARY LOOP ===
-    for _ in range(generations):
-        print(f"\n ====== Generation {_ + 1}/{generations} ====== \n")
-        for _ in range(len(initial_segmentations)):
-            parent_index = random.randint(0, len(initial_segmentations) - 1)
-            child = mutate(parent_index, segmentations, neighbours_table, distances_table)
-
-            desc = behavior_descriptors(child)
-            key = discretize(desc, bins)
-            f = fitness(child)
+    for _ in range(config.generations):
+        print(f"\n ====== Generation {_ + 1}/{config.generations} ====== \n")
+        for seg in initial_segmentations:
+            child = mutate(seg, topology_list, neighbours_table, distances_table, n_low_value_device=config.n_low_value_device)
+            desc = behavior_descriptors(child, config.descriptors)
+            key = discretize(desc, config.bins)
+            f = fitness(config, child, config.n_simulations, config.total_sim_time, config.times_in_enclaves)
 
             if key not in grid or f > grid[key][1]:
                 print(f"New elite found in bin {key}: fitness {f}")
                 grid[key] = (child, f)
 
-
-    return grid
+    best_key = max(grid, key=lambda k: grid[k][1])
+    return grid[best_key][0], grid[best_key][1]  # return the best segmentation and its fitness
