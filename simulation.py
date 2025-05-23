@@ -123,7 +123,7 @@ class Simulation:
                 # Add alert if the infection is detected (and blocked) or if the device is turned down
                 test_alert = False
                 if self.device_IDS_detect():
-                    print(f"        [{device.name}] Device infection detected and blocked.")
+                    print(f"        [{device.name}] Infection detected and blocked.")
                     test_alert = True
                 else:
                     is_turned_down, compromise_loss = self.device_compromise(device)
@@ -155,8 +155,7 @@ class Simulation:
             if not_discovered:
                 new_device = random.choice(not_discovered)
                 disvovered.append(new_device)
-                # TODO: Update attacker prior value of the new discovered device with the true device value
-                new_device.prior_information_value = new_device.true_information_value
+                new_device.prior_information_value = new_device.information_value
         return recon_time
 
     def select_k_best(self, k: int, devices: List[Device]) -> List[Device]:
@@ -167,12 +166,13 @@ class Simulation:
         :param alpha: Weight for true information value
         :param beta: Weight for compromise value
         """
-        return sorted(
+        sorted_devices = sorted(
             [d for d in devices if not d.infected],
-            key=lambda d: (self.I_appetite * d.true_information_value +
+            key=lambda d: (self.I_appetite * d.prior_information_value + # Gathered from reconnaissance
                             self.C_appetite * d.compromise_value),
             reverse=True
-        )[:k]
+        )
+        return sorted_devices[:k]
     
     def network_spread(self) -> float:
         """

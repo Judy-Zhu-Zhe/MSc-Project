@@ -62,6 +62,8 @@ def generate_devices(n):
 
 
 CONFIG1 = MapElitesConfig(
+    init_batch = 100,
+    batch_size = 10,
     devices = generate_devices(10),
     sensitivities = [random.uniform(0.2, 0.8) for _ in range(N_ENCLAVES)],
     vulnerabilities = [1, 0.5, 0.6, 0.8, 0.7],
@@ -79,6 +81,7 @@ CONFIG1 = MapElitesConfig(
     c_appetite = C_APPETITE,
     i_appetite = I_APPETITE,
     beta = BETA,
+    eta = 10,
     metric_weights = [1, 0, 0]
 )
 

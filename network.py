@@ -45,8 +45,8 @@ class Device:
         self.device_group = DEVICE_GROUPS.get(device_type, [])
         # TODO: Figure prior and true value
         self.compromise_value = DEVICE_VALUES.get(device_type, (0, 0))[0]
-        self.prior_information_value = DEVICE_VALUES.get(device_type, (0, 0))[1]
-        self.true_information_value = self.prior_information_value
+        self.prior_information_value = 0
+        self.information_value = DEVICE_VALUES.get(device_type, (0, 0))[1]
         self.group = DEVICE_GROUPS.get(device_type, [])
         self.has_been_infected = False
         self.infected = False  # TODO: returns to an operational state after a certain time depending on the device type
@@ -56,7 +56,7 @@ class Device:
         self.infected = False
 
     def __repr__(self):
-        return f"<Device {self.name} ({self.compromise_value}, {self.true_information_value}) (Infected={self.infected})>"
+        return f"<Device {self.name} ({self.compromise_value}, {self.information_value}) (Infected={self.infected})>"
 
 
 # ========================================================================================================================

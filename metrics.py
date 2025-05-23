@@ -1,4 +1,5 @@
 from typing import List
+import math
 
 from network import Segmentation
 from simulation import Simulation
@@ -57,4 +58,20 @@ def resilience_loss(segmentation: Segmentation) -> float:
         resilience_loss = offline_loss + sum([d.compromise_value for d in enclave.devices])
         loss += resilience_loss
     return loss / (len(segmentation.enclaves) - 1) if len(segmentation.enclaves) > 1 else 0
+
+
+def topology_distance(matrix1: List[List[int]], matrix2: List[List[int]]) -> float:
+    """
+    Computes the Euclidean distance between two adjacency matrices.
+
+    :param matrix1: First adjacency matrix (list of lists of 0s and 1s)
+    :param matrix2: Second adjacency matrix
+    :return: Euclidean distance
+    """
+    assert len(matrix1) == len(matrix2), "Matrices must be the same size"
+    assert all(len(row1) == len(row2) for row1, row2 in zip(matrix1, matrix2)), "Matrices must be square and aligned"
+
+    flat1 = [val for row in matrix1 for val in row]
+    flat2 = [val for row in matrix2 for val in row]
+    return math.sqrt(sum((a - b) ** 2 for a, b in zip(flat1, flat2)))
 
