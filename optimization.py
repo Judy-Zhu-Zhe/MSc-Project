@@ -14,7 +14,7 @@ from metrics import security_loss, performance_loss, resilience_loss, topology_d
 
 def num_high_degree_nodes(segmentation: Segmentation) -> int:
     """Returns the number of enclaves with more than 2 neighbours."""
-    return sum(1 for e in segmentation.enclaves if len(e.neighbours) > 2)
+    return sum(1 for n in segmentation.topology.adj_matrix if len(n) > 2)
 
 def std_devices(segmentation: Segmentation) -> float:
     """Returns the standard deviation of the number of devices in enclaves."""
@@ -103,8 +103,7 @@ def mutate(
         topology=new_topology,
         partition=new_partition,
         sensitivities=new_sensitivities,
-        vulnerabilities=parent.vulnerabilities(),
-        n_low_value_device=n_low_value_device,
+        vulnerabilities=parent.vulnerabilities()
     )
     return new_segmentation
 
@@ -205,19 +204,6 @@ def topology_neighbours(graphs: GraphSet, num_enclaves: int, K: int = 5) -> Tupl
     print(f"Initialization done!")
     return topology_list, neighbours_table, distances_table
 
-def random_segmentation(topology: Topology, devices: List[Device], sensitivities: List[float], vulnerabilities: List[float]) -> Segmentation:
-    """Generates a random segmentation given a topology."""
-    partition = [[] for _ in range(topology.num_enclaves)]
-    for device in devices:
-        enclave_index = random.randint(1, topology.num_enclaves - 1) # Randomly assign to a non-Internet enclave
-        partition[enclave_index].append(device)
-    return Segmentation(
-        topology=topology,
-        partition=partition,
-        sensitivities=sensitivities,
-        vulnerabilities=vulnerabilities
-    )
-
 @dataclass
 class MapElitesConfig:
     init_batch: int
@@ -241,6 +227,25 @@ class MapElitesConfig:
     beta: float
     eta: float # Hyperparameter for sensitivity mutation (more aggressive when lower)
     metric_weights: List[float]
+
+def random_segmentation(topology: Topology, config: MapElitesConfig) -> Segmentation:
+    """Generates a random segmentation given a topology."""
+    partition = [[] for _ in range(topology.num_enclaves)]
+    for device in config.devices:
+        enclave_index = random.randint(1, topology.num_enclaves - 1) # Randomly assign to a non-Internet enclave
+        partition[enclave_index].append(device)
+    # TODO:
+    # id = 0
+    # for p in partition:
+    #     n = random.randint(0, config.n_low_value_device)
+    #     partition[enclave_index].append(Device(f"Low value device {id+1}", device_type="Low value device"))
+    #     id += n
+    return Segmentation(
+        topology=topology,
+        partition=partition,
+        sensitivities=config.sensitivities,
+        vulnerabilities=config.vulnerabilities
+    )
 
 def fitness(config: MapElitesConfig, seg: Segmentation) -> float:
     """Calculates the fitness of a segmentation based on its behavior descriptors."""
@@ -272,32 +277,28 @@ def map_elites(topology_list: List[Topology],
 
     :return: Archive grid mapping behavior bins to (segmentation, fitness)
     """
-    grid: Dict[Tuple, Tuple[Segmentation, float]] = {}
-    initial_segmentations = [
-        random_segmentation(random.choice(topology_list), config.devices, config.sensitivities, config.vulnerabilities) 
-        for _ in range(config.init_batch)
-    ]
+    result: Tuple[Segmentation, float] = (None, float("-inf"))
+    for b in range(config.batch_size):
+        print(f"\n ++++++ Batch {b + 1}/{config.batch_size} ++++++ \n")
+        grid: Dict[Tuple, Tuple[Segmentation, float]] = {}
+        for g in range(config.generations):
+            print(f"\n ++++++ Generation {g + 1}/{config.generations} ++++++ \n")
+            if g < config.init_batch:
+                seg = random_segmentation(random.choice(topology_list), config)
+            else:
+                seg = random.choice(list(grid.values()))[0]
+                m = random.choice(["topology", "partition", "sensitivity"])
+                seg = mutate(seg, topology_list, neighbours_table, distances_table, [m], config.eta, config.n_low_value_device)
+            
+            desc = behavior_descriptors(seg, config.descriptors)
+            key = discretize(desc, config.bins)
+            f = fitness(config, seg)
+            if key not in grid or f > grid[key][1]:
+                print(f"New elite found in bin {key}: fitness {f}")
+                grid[key] = (seg, f)
 
-    # === INITIAL POPULATION EVALUATION ===
-    for i, seg in enumerate(initial_segmentations):
-        desc = behavior_descriptors(seg, config.descriptors)
-        key = discretize(desc, config.bins)
-        f = fitness(config, seg)
-        if key not in grid or f > grid[key][1]:
-            grid[key] = (seg, f)
-
-    # === EVOLUTIONARY LOOP ===
-    for _ in range(config.generations):
-        print(f"\n ====== Generation {_ + 1}/{config.generations} ====== \n")
-        for seg, _ in list(grid.values()):
-            for m in ["topology", "partition", "sensitivity"]:
-                child = mutate(seg, topology_list, neighbours_table, distances_table, [m], config.eta, config.n_low_value_device)
-                desc = behavior_descriptors(child, config.descriptors)
-                key = discretize(desc, config.bins)
-                f = fitness(config, child)
-                if key not in grid or f > grid[key][1]:
-                    print(f"New elite found in bin {key}: fitness {f}")
-                    grid[key] = (child, f)
-
-    best_key = max(grid, key=lambda k: grid[k][1])
-    return grid[best_key][0], grid[best_key][1]  # return the best segmentation and its fitness
+        best_key = max(grid, key=lambda k: grid[k][1])
+        if grid[best_key][1] > result[1]:  # The best segmentation and its fitness of the batch
+            result = grid[best_key]
+            print(f"New best segmentation found: {result[1]}")
+    return result

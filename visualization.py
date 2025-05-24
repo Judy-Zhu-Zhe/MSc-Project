@@ -46,7 +46,7 @@ def draw_segmentation_topology(seg: Segmentation):
                 G.add_edge(i, j)
 
     pos = nx.spring_layout(G, seed=42)  # fixed layout for consistency
-    sizes = [G.nodes[i]["size"] * 250 + 50 for i in G.nodes]  # avoid zero-size
+    sizes = [G.nodes[i]["size"] * 200 + 100 for i in G.nodes]  # avoid zero-size
     sizes[0] = 1500  # Internet node size
     colors = [G.nodes[i]["color"] for i in G.nodes]
     labels = {i: G.nodes[i]["label"] for i in G.nodes}

@@ -77,10 +77,9 @@ class Simulation:
         """
         print(f"        [{device.name}] Device compromised.")
         loss = 0
-        device.infected = True
         if not device.has_been_infected:
             loss += device.prior_information_value
-            device.has_been_infected = True
+        device.infect()
         compromise = random.random()
         device.turned_down = False
         if compromise <= self.C_appetite:
@@ -179,16 +178,17 @@ class Simulation:
         ### Algorithm 1 ###
         Simulate the spread of an attack in the network over time.
         """
-        compromised_enclaves: List[Enclave] = [e for e in self.segmentation.enclaves if e.compromised] # Only Internet when initialized
+        compromised_enclave_idx: List[int] = [e.id for e in self.segmentation.enclaves if e.compromised] # Only Internet when initialized
         loss = 0
         while self.spent_time <= self.T:
             print(f"Time: [{self.spent_time}/{self.T}]")
             # For each compromised enclave, infect its neighbours
-            for enclave in compromised_enclaves:
-                for n in enclave.neighbours:
+            for e in compromised_enclave_idx:
+                for n in self.segmentation.topology.adj_matrix[e]:
+                    if n in compromised_enclave_idx:
+                        continue
                     next = self.segmentation.enclaves[n]
                     if not next.compromised:
-                        self.spent_time += 1 # TODO: Added
                         infect = random.random()
                         print(f"    Infecting [Enclave {next.id}] (v={next.vulnerability:.2f}) with probability {infect:.2f}.")
                         detected = self.network_detection()
@@ -197,7 +197,7 @@ class Simulation:
                                 print(f"    -- [√] Infection successful.")
                                 loss += self.enclave_spread(next, self.times[n])
                                 if next.compromised:
-                                    compromised_enclaves.append(next)
+                                    compromised_enclave_idx.append(next.id)
                                 self.spent_time += self.times[n]
                                 if self.spent_time >= self.T:
                                     print(f"Time limit reached. Loss incurred: {loss:.2f}")
@@ -252,12 +252,12 @@ class Simulation:
         :return: Cleansing loss incurred by the enclave."""
         return sum(d.compromise_value for d in enclave.devices if d.infected)
 
-    # def cleansing_loss(enclave: Enclave) -> float:
-    #     """Trigger cleansing without investigation 
-    #     (enclave cleansing normally triggered).
+    def cleansing_loss(enclave: Enclave) -> float:
+        """Trigger cleansing without investigation 
+        (enclave cleansing normally triggered).
         
-    #     :return: Cleansing loss incurred by the enclave."""
-    #     return cleansing_loss_with_investigation(enclave) / 2
+        :return: Cleansing loss incurred by the enclave."""
+        return sum(d.compromise_value for d in enclave.devices if d.infected) / 2
 
     def enclave_detection(self, enclave: Enclave, alert: int) -> bool:
         """
