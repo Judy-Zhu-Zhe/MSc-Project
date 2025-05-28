@@ -14,7 +14,8 @@ class Simulation:
                  r_reconnaissance: float, 
                  p_update: float = 1/90,
                  p_network_error: float = 0.7,
-                 p_device_error: float = 0.7
+                 p_device_error: float = 0.7,
+                 adaptation: bool = False
                  ) -> None:
         """
         :param seg: The initialized network segmentation
@@ -39,7 +40,10 @@ class Simulation:
         self.p_update = p_update
         self.p_network_error = p_network_error
         self.p_device_error = p_device_error
-        self.cleansing_loss = self.simulate_network()
+        if adaptation:
+            self.cleansing_loss = self.simulate_adaption()
+        else:
+            self.cleansing_loss = self.simulate_network()
 
     def simulate_network(self) -> float:
         """
@@ -95,16 +99,16 @@ class Simulation:
         :param time: The time to spend in the enclave.
         :param infected_device: The device that is already infected
         """
-        print(f"        [Enclave {enclave.id}] compromise spreading from {infected_device.name if infected_device else 'Internet'}...")
+        print(f"        [Enclave {enclave.id}] compromise spreading from {infected_device.name if infected_device else "Internet"}...")
         loss = 0
         alert = 0
         enclave.compromised = True
-        if not enclave.devices:
+        if not enclave.all_devices():
             return 0
         
         # Select a random device to infect
         if not infected_device:
-            infected_device = random.choice(enclave.devices)
+            infected_device = random.choice(enclave.all_devices())
         is_turned_down, compromise_loss = self.device_compromise(infected_device)
         loss += compromise_loss
         if is_turned_down:
@@ -117,7 +121,7 @@ class Simulation:
         
         recon_time = self.reconnaissance(enclave, time)
         for _ in range(recon_time, time):
-            to_infect = self.select_k_best(self.beta, enclave.devices)
+            to_infect = self.select_k_best(self.beta, enclave.all_devices())
             for device in to_infect:
                 # Add alert if the infection is detected (and blocked) or if the device is turned down
                 test_alert = False
@@ -150,7 +154,7 @@ class Simulation:
         recon_time = int(self.r_reconnaissance * time)
         disvovered = enclave.infected_devices()
         for _ in range(recon_time):
-            not_discovered = [d for d in enclave.devices if d not in disvovered]
+            not_discovered = [d for d in enclave.all_devices() if d not in disvovered]
             if not_discovered:
                 new_device = random.choice(not_discovered)
                 disvovered.append(new_device)
@@ -184,9 +188,7 @@ class Simulation:
             print(f"Time: [{self.spent_time}/{self.T}]")
             # For each compromised enclave, infect its neighbours
             for e in compromised_enclave_idx:
-                for n in self.segmentation.topology.adj_matrix[e]:
-                    if n in compromised_enclave_idx:
-                        continue
+                for n in self.segmentation.topology.enclave_neighbours(e):
                     next = self.segmentation.enclaves[n]
                     if not next.compromised:
                         infect = random.random()
@@ -218,7 +220,7 @@ class Simulation:
         internal_loss = 0
         for e in self.segmentation.enclaves:
             if e.compromised:
-                for d in e.devices:
+                for d in e.all_devices():
                     if d.infected:
                         internal_loss += self.enclave_spread(e, self.times[e], d)
                         self.spent_time += self.times[e]
@@ -241,7 +243,7 @@ class Simulation:
     def enclave_cleansing(self, enclave: Enclave) -> float:
         """Simulate the cleansing of the enclave."""
         enclave.compromised = False
-        for device in enclave.devices:
+        for device in enclave.all_devices():
             device.reset()
         print(f"        [Enclave {enclave.id}] cleansed. Threats removed.")
     
@@ -250,14 +252,14 @@ class Simulation:
         (usually when a sudden device mission becomes unresponsive due to compromise).
         
         :return: Cleansing loss incurred by the enclave."""
-        return sum(d.compromise_value for d in enclave.devices if d.infected)
+        return sum(d.compromise_value for d in enclave.infected_devices())
 
     def cleansing_loss(enclave: Enclave) -> float:
         """Trigger cleansing without investigation 
         (enclave cleansing normally triggered).
         
         :return: Cleansing loss incurred by the enclave."""
-        return sum(d.compromise_value for d in enclave.devices if d.infected) / 2
+        return sum(d.compromise_value for d in enclave.infected_devices()) / 2
 
     def enclave_detection(self, enclave: Enclave, alert: int) -> bool:
         """
@@ -267,7 +269,7 @@ class Simulation:
         :param alert: Number of alerts detected in the enclave
         :return: True if the enclave detects an intrusion, False otherwise.
         """
-        return random.random() <= enclave.sensitivity * alert / len(enclave.devices)
+        return random.random() <= enclave.sensitivity * alert / len(enclave.all_devices())
     
     def regular_update(self, seg: Segmentation) -> bool:
         """

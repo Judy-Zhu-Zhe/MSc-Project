@@ -4,9 +4,9 @@ import json
 from datetime import datetime
 
 from network import Segmentation
-from optimization import map_elites, topology_neighbours
-from visualization import plot_behavior_map, draw_segmentation_topology
-from parameters import N_ENCLAVES, CONFIG_1
+from optimization import map_elites, topology_neighbours, MapElitesConfig
+from visualization import draw_segmentation_topology
+from parameters import CONFIG_1, CONFIG_2, MY_CONFIG
 
 def save_segmentation(seg: Segmentation, batch: int, gen: int):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -19,35 +19,26 @@ def load_segmentation(filename: str) -> Segmentation:
         data = json.load(f)
     return Segmentation.from_dict(data)
 
-def main():
+def run_segmentation(config: MapElitesConfig):
+    n_enclaves = config.n_enclaves
     # Generate all possible topologies
-    universe = [(i, j) for i in range(N_ENCLAVES) for j in range(N_ENCLAVES) if i < j]
+    universe = [(i, j) for i in range(n_enclaves) for j in range(n_enclaves) if i < j]
     GraphSet.set_universe(universe)
-    degree_constraints = {i: [1, 2] if i == 0 else range(1, N_ENCLAVES) for i in range(N_ENCLAVES)} # Maximum 2 ISPs
-    graphs = GraphSet.graphs(vertex_groups=[range(N_ENCLAVES)], degree_constraints=degree_constraints)
+    degree_constraints = {i: [1, 2] if i == 0 else range(1, n_enclaves) for i in range(n_enclaves)} # Maximum 2 ISPs
+    graphs = GraphSet.graphs(vertex_groups=[range(n_enclaves)], degree_constraints=degree_constraints)
 
     # Run MAP-Elites for optimization
-    config = CONFIG_1
     start_time = time.time()
-    topology_list, neighbours_table, distances_table = topology_neighbours(graphs, N_ENCLAVES, K=5)
+    topology_list, neighbours_table, distances_table = topology_neighbours(graphs, n_enclaves, K=5)
     seg, fitness = map_elites(topology_list, neighbours_table, distances_table, config)
     end_time = time.time()
     elapsed = end_time - start_time
 
-    # Visualize the results
-    # print("Archive size:", len(archive))
-    # print("Archive:", archive)
-    # plot_behavior_map(archive)
-    # for k in archive.values():
-    #     draw_segmentation_topology(k[0])
-    #     print(k[0].topology.adj_matrix)
-    #     print("Fitness: ", k[1])
-
-    print("\nNumber of graphs:", len(graphs))
-    print("Graphs:", graphs)
-    print("Results:")
+    print("\nNumber of graphs (topologies):", len(graphs))
+    print("\nResults:")
     print(f"Execution time for MAP-Elite: {elapsed:.2f} seconds")
     print(f"Fitness: {fitness}")
+    print(seg.topology.edges())
     for e in seg.enclaves:
         if e.id == 0:
             print(e)
@@ -60,4 +51,4 @@ def main():
     draw_segmentation_topology(seg)
 
 if __name__ == "__main__":
-    main()
+    run_segmentation(MY_CONFIG)

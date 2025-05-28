@@ -83,7 +83,7 @@ class Device:
 # ========================================================================================================================
 
 class Enclave:
-    def __init__(self, id: int, vulnerability: float = 0, sensitivity: float = 0, devices: List[Device] = [], dist_to_internet: int = None):
+    def __init__(self, id: int, vulnerability: float = 0, sensitivity: float = 0, devices: List[Device] = [], low_value_devices: List[Device] = [], dist_to_internet: int = None):
         """
         :param id: Identifier for the enclave
         :param vulnerability: Vulnerability of the enclave to compromise
@@ -95,6 +95,7 @@ class Enclave:
         self.vulnerability = vulnerability
         self.sensitivity = sensitivity
         self.devices: List[Device] = devices
+        self.low_value_devices: List[Device] = low_value_devices
         self.compromised = False
         self.cleansing_loss = 0
         self.dist_to_internet: Optional[int] = dist_to_internet  # Number of hops to the internet
@@ -109,20 +110,20 @@ class Enclave:
             raise ValueError(f"Device {device.name} not found in enclave {self.id}.")
         
     def num_devices(self) -> int:
-        """Returns the number of devices in the enclave."""
+        """Returns the number of non-low-value devices in the enclave."""
         return len(self.devices)
     
-    def num_non_low_value_devices(self) -> int:
-        """Returns the number of non-low value devices in the enclave."""
-        return len([d for d in self.devices if d.device_type != "Low value device"])
+    def all_devices(self) -> List[Device]:
+        """Returns a list of all devices in the enclave, including low-value devices."""
+        return self.devices + self.low_value_devices
         
     def infected_devices(self):
         """Returns a list of devices that are infected."""
-        return [d for d in self.devices if d.infected]
+        return [d for d in self.all_devices() if d.infected]
     
     def turned_down_devices(self):
         """Returns a list of devices that are turned down."""
-        return [d for d in self.devices if d.turned_down]
+        return [d for d in self.all_devices() if d.turned_down]
     
     def to_dict(self):
         return {
@@ -130,6 +131,7 @@ class Enclave:
             "vulnerability": self.vulnerability,
             "sensitivity": self.sensitivity,
             "devices": [d.to_dict() for d in self.devices],
+            "low_value_devices": [d.to_dict() for d in self.low_value_devices],
             "dist_to_internet": self.dist_to_internet
         }
 
@@ -140,7 +142,8 @@ class Enclave:
             vulnerability=data["vulnerability"],
             sensitivity=data["sensitivity"],
             devices=[Device.from_dict(d) for d in data["devices"]],
-            dist_to_internet=data["dist_to_internet"]
+            low_value_devices=[Device.from_dict(d) for d in data["low_value_devices"]],
+            dist_to_internet=data["dist_to_internet"],
         )
         return enclave
 
@@ -162,21 +165,21 @@ class Internet(Enclave):
 # ========================================================================================================================
 
 class Topology:
-    def __init__(self, id: int, num_enclaves: int = 1, topology: List[Tuple[int]] = []):
+    def __init__(self, id: int, n_enclaves: int = 1, topology: List[Tuple[int]] = []):
         """
         :param id: Identifier for the topology
         :param num_enclaves: Number of enclaves in the network
         :param topology: The topology of the network (list of enclaves and their neighbours)
         """
         self.id = id
-        self.num_enclaves = num_enclaves
-        self.adj_matrix = [[0] * num_enclaves for _ in range(num_enclaves)]
+        self.n_enclaves = n_enclaves
+        self.adj_matrix = [[0] * n_enclaves for _ in range(n_enclaves)]
         for i, j in topology:
             try:
                 self.adj_matrix[i][j] = 1
                 self.adj_matrix[j][i] = 1
             except IndexError:
-                raise ValueError(f"Invalid topology: {i}, {j} out of range for {num_enclaves} enclaves.")
+                raise ValueError(f"Invalid topology: {i}, {j} out of range for {n_enclaves} enclaves.")
         self.dist_to_internet = self.distances_to_target(0)  # Compute distances to the internet (index 0)
             
     def distances_to_target(self, target_index: int) -> List[Optional[int]]:
@@ -204,24 +207,33 @@ class Topology:
 
         return distances
     
+    def enclave_neighbours(self, enclave_index: int) -> List[int]:
+        """Returns a list of indices of neighbours for a given enclave."""
+        assert enclave_index >= 0 and enclave_index < self.n_enclaves, "Invalid enclave index."
+        return [i for i, connected in enumerate(self.adj_matrix[enclave_index]) if connected == 1 and i != enclave_index]
+    
+    def edges(self) -> List[Tuple[int, int]]:
+        """Returns a list of edges in the topology."""
+        return [(i, j) for i in range(self.n_enclaves) for j in range(i, self.n_enclaves) if self.adj_matrix[i][j] == 1]
+    
     def to_dict(self):
         return {
             "id": self.id,
-            "num_enclaves": self.num_enclaves,
-            "topology": [(i, j) for i in range(self.num_enclaves) for j in range(i, self.num_enclaves) if self.adj_matrix[i][j] == 1]
+            "num_enclaves": self.n_enclaves,
+            "topology": self.edges()
         }
     
     @staticmethod
     def from_dict(data):
         topology = Topology(
             id=data["id"],
-            num_enclaves=data["num_enclaves"],
+            n_enclaves=data["num_enclaves"],
             topology=data["topology"]
         )
         return topology
 
     def __repr__(self):
-        return f"<Network topology with {self.num_enclaves} enclaves>"
+        return f"<Network topology with {self.n_enclaves} enclaves>"
 
 
 class Segmentation:
@@ -229,7 +241,8 @@ class Segmentation:
                  topology: Topology = None, 
                  partition: List[List[Device]] = [], 
                  sensitivities: List[float] = [], 
-                 vulnerabilities: List[float] = []):
+                 vulnerabilities: List[float] = [],
+                 n_low_value_device: int = 0):
         """
         :param topology: The topology of the network
         :param partition: The partition of the network (list of devices in each enclave)
@@ -239,10 +252,10 @@ class Segmentation:
         self.internet = Internet()
         self.enclaves: List[Enclave] = [self.internet]
         if topology:
-            assert topology.num_enclaves == len(partition) == len(sensitivities) == len(vulnerabilities), "Solutions must have the same length."
-            self.create_enclaves(partition, sensitivities, vulnerabilities)
+            assert topology.n_enclaves == len(partition) == len(sensitivities) == len(vulnerabilities), "Solutions must have the same length."
+            self.create_enclaves(partition, sensitivities, vulnerabilities, n_low_value_device)
 
-    def create_enclaves(self, partition: List[List[Device]], sensitivities: List[float], vulnerabilities: List[float]):
+    def create_enclaves(self, partition: List[List[Device]], sensitivities: List[float], vulnerabilities: List[float], n_low_value_device: int = 0):
         """
         ### Algorithm 6 ###
         Initialisation algorithm - Simulation starting point
@@ -253,17 +266,18 @@ class Segmentation:
         """
         # Create enclaves based on the partition
         for i in range(1, len(partition)):
+            num_low = random.randint(1, n_low_value_device) if n_low_value_device > 0 else 0
+            low_value_devices = [Device(f"Low value device {i}-{j+1}", device_type="Low value device") for j in range(num_low)]
             e = Enclave(
                 id=i, 
                 vulnerability=vulnerabilities[i], 
                 sensitivity=sensitivities[i], 
-                devices=partition[i]
+                devices=partition[i],
+                low_value_devices=low_value_devices,
+                dist_to_internet=self.topology.dist_to_internet[i]
                 )
-            # Add dynamic low value devices
-            # for j in range(random.randint(0, n_low_value_device)):
-            #     e.add_device(Device(f"Low value device {j+1}", device_type="Low value device"))
+
             self.enclaves.append(e)
-            self.enclaves[i].dist_to_internet = self.topology.dist_to_internet[i]
 
         # Connect enclaves based on the topology
         # TODO: enclave need neighbours?
@@ -272,24 +286,6 @@ class Segmentation:
         #     self.enclaves[i].neighbours = neighbours
 
         # self.update_distances()  # Update distances to the internet for all enclaves
-
-    # def add_enclave(self, enclave: Enclave):
-    #     self.enclaves.append(enclave)
-    
-    # def connect_enclaves(self, e1: Enclave, e2: Enclave):
-    #     e1.neighbours.append(e2.id)
-    #     e2.neighbours.append(e1.id)
-    #     self.update_distances()
-
-    # def remove_enclave(self, enclave: Enclave):
-    #     if enclave in self.enclaves:
-    #         self.enclaves.remove(enclave)
-    #         for e in self.enclaves:
-    #             if enclave.id in e.neighbours:
-    #                 e.neighbours.remove(enclave)
-    #         self.update_distances()
-    #     else:
-    #         raise ValueError(f"Enclave {enclave.id} not found in network.")
         
     # def update_distances(self):
     #     """Updates the distances to the internet for all enclaves."""
@@ -316,17 +312,13 @@ class Segmentation:
         """Returns a list of enclaves that are compromised."""
         return [e for e in self.enclaves if e.compromised]
     
-    def compromised_devices(self) -> List[Device]:
+    def all_compromised_devices(self) -> List[Device]:
         """Returns a list of devices that are compromised."""
-        return [d for e in self.enclaves for d in e.devices if d.infected]
+        return [d for e in self.enclaves for d in e.all_devices() if d.infected]
     
-    def turned_down_devices(self) -> List[Device]:
+    def all_turned_down_devices(self) -> List[Device]:
         """Returns a list of devices that are turned down."""
-        return [d for e in self.enclaves for d in e.devices if d.turned_down]
-    
-    def neighbours(self) -> List[List[int]]:
-        """Returns the neighbours of the network."""
-        return [e.neighbours for e in self.enclaves]
+        return [d for e in self.enclaves for d in e.all_devices() if d.turned_down]
     
     def partition(self) -> List[List[Device]]:
         """Returns the partition of the network into enclaves."""
@@ -345,7 +337,8 @@ class Segmentation:
             "topology": self.topology.to_dict(),
             "partition": [[d.to_dict() for d in enclave.devices] for enclave in self.enclaves],
             "sensitivities": [enclave.sensitivity for enclave in self.enclaves],
-            "vulnerabilities": [enclave.vulnerability for enclave in self.enclaves]
+            "vulnerabilities": [enclave.vulnerability for enclave in self.enclaves],
+            "enclaves": [enclave.to_dict() for enclave in self.enclaves]
         }
     
     @staticmethod
@@ -354,7 +347,7 @@ class Segmentation:
             topology=Topology.from_dict(data["topology"]),
             partition=data["partition"],
             sensitivities=data["sensitivities"],
-            vulnerabilities=data["vulnerabilities"]
+            vulnerabilities=data["vulnerabilities"],
         )
         return segmentation
 

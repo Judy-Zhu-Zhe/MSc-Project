@@ -10,18 +10,19 @@ def security_loss(simulations: List[Simulation]) -> float:
     :param networks: List of networks across simulations.
     :return: Average security loss across all networks.
     """
+    assert simulations, "Simulation list cannot be empty"
     loss = 0
     for s in simulations:
         seg = s.segmentation
         # Sum of information value of all infected devices
-        information_loss = sum([d.prior_information_value for d in seg.compromised_devices()]) 
+        information_loss = sum([d.prior_information_value for d in seg.all_compromised_devices()]) 
         # Sum of compromise value of all turned down devices
-        compromise_loss = sum([d.compromise_value for d in seg.turned_down_devices()])
+        compromise_loss = sum([d.compromise_value for d in seg.all_turned_down_devices()])
         # The cleansing loss if any
         cleansing_loss = s.cleansing_loss
         # Sum of all losses
         loss += information_loss + compromise_loss + cleansing_loss
-    return loss / len(simulations) if simulations else 0
+    return loss / len(simulations)
 
 def performance_loss(segmentation: Segmentation) -> float:
     """Calculate the average performance loss of a network segmentation.
