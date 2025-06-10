@@ -103,8 +103,6 @@ class Simulation:
         loss = 0
         alert = 0
         enclave.compromised = True
-        if not enclave.all_devices():
-            return 0
         
         # Select a random device to infect
         if not infected_device:
@@ -152,12 +150,12 @@ class Simulation:
         :return: Time taken for reconnaissance
         """
         recon_time = int(self.r_reconnaissance * time)
-        disvovered = enclave.infected_devices()
+        discovered = enclave.infected_devices()
         for _ in range(recon_time):
-            not_discovered = [d for d in enclave.all_devices() if d not in disvovered]
+            not_discovered = [d for d in enclave.all_devices() if d not in discovered]
             if not_discovered:
                 new_device = random.choice(not_discovered)
-                disvovered.append(new_device)
+                discovered.append(new_device)
                 new_device.prior_information_value = new_device.information_value
         return recon_time
 
@@ -222,7 +220,7 @@ class Simulation:
             if e.compromised:
                 for d in e.all_devices():
                     if d.infected:
-                        internal_loss += self.enclave_spread(e, self.times[e], d)
+                        internal_loss += self.enclave_spread(e, self.times[e.id], d)
                         self.spent_time += self.times[e]
         return internal_loss
     
@@ -254,7 +252,7 @@ class Simulation:
         :return: Cleansing loss incurred by the enclave."""
         return sum(d.compromise_value for d in enclave.infected_devices())
 
-    def cleansing_loss(enclave: Enclave) -> float:
+    def cleansing_loss_without_investigation(enclave: Enclave) -> float:
         """Trigger cleansing without investigation 
         (enclave cleansing normally triggered).
         

@@ -338,14 +338,14 @@ class Segmentation:
             "partition": [[d.to_dict() for d in enclave.devices] for enclave in self.enclaves],
             "sensitivities": [enclave.sensitivity for enclave in self.enclaves],
             "vulnerabilities": [enclave.vulnerability for enclave in self.enclaves],
-            "enclaves": [enclave.to_dict() for enclave in self.enclaves]
+            # "enclaves": [enclave.to_dict() for enclave in self.enclaves]
         }
     
     @staticmethod
     def from_dict(data):
         segmentation = Segmentation(
             topology=Topology.from_dict(data["topology"]),
-            partition=data["partition"],
+            partition=[[Device.from_dict(d) for d in enclave] for enclave in data["partition"]],
             sensitivities=data["sensitivities"],
             vulnerabilities=data["vulnerabilities"],
         )
