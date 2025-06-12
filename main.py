@@ -53,8 +53,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="configs/config_exp1.yaml", help="Path to config YAML")
     parser.add_argument("--save", action="store_true", help="Save results to disk")
-    parser.add_argument("--adapt", action="store_true", help="Run in adaptation mode")
-    parser.add_argument("--seg", type=str, help="Path to infected segmentation JSON")
+    parser.add_argument("--seg", type=str, help="Path to segmentation JSON for adaptation")
     args = parser.parse_args()
 
     if args.config:
@@ -62,9 +61,7 @@ if __name__ == "__main__":
     else:
         config = MapElitesConfig()
 
-    if args.adapt:
-        if not args.seg:
-            raise ValueError("In adaptation mode, --infect must be specified with a path to a segmentation JSON file.")
+    if args.seg:
         seg = load_segmentation(args.seg)
         seg.randomly_infect(devices={"Employee computer": 1}) # Change to intended device to infect
         draw_segmentation_topology(seg)
