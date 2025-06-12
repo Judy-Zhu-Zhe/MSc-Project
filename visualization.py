@@ -14,21 +14,24 @@ def draw_grid_heatmap(
     descriptor_names: list = None,
     save_path: str = None
 ):
+    # Extract values
     points = [
-        (int(key[dim_x]), int(key[dim_y]), -fitness)
+        (key[dim_x], key[dim_y], -fitness)
         for key, (_, fitness) in grid.items()
     ]
+    
 
-    # Extract bounds
-    xs = [p[0] for p in points]
-    ys = [p[1] for p in points]
-    x_max = max(max(xs), n_enclaves - 1)
-    y_max = max(max(ys), n_enclaves - 1)
+    # Unique sorted bin values (used as axes)
+    x_bins = sorted(set(p[0] for p in points))
+    y_bins = sorted(set(p[1] for p in points))
 
-    # Heatmap matrix
-    heatmap = np.full((y_max + 1, x_max + 1), np.nan)
+    x_idx = {val: i for i, val in enumerate(x_bins)}
+    y_idx = {val: i for i, val in enumerate(y_bins)}
+
+    # Create heatmap matrix
+    heatmap = np.full((len(y_bins), len(x_bins)), np.nan)
     for x, y, loss in points:
-        heatmap[y, x] = loss
+        heatmap[y_idx[y], x_idx[x]] = loss
 
     fig, ax = plt.subplots(figsize=(8, 6))
     im = ax.imshow(
@@ -38,26 +41,45 @@ def draw_grid_heatmap(
         aspect='auto'
     )
 
-    # Set fixed number of ticks
-    num_ticks = 6
-    xticks = np.linspace(0, x_max, num=min(num_ticks, x_max + 1), dtype=int)
-    yticks = np.linspace(0, y_max, num=min(num_ticks, y_max + 1), dtype=int)
-    ax.set_xticks(xticks)
-    ax.set_yticks(yticks)
-    ax.set_xticklabels(xticks)
-    ax.set_yticklabels(yticks)
+    # Set integer ticks if descriptor is "nb_..." or "distance_..."
+    descriptor_x = descriptor_names[dim_x] if descriptor_names else f"Descriptor[{dim_x}]"
+    descriptor_y = descriptor_names[dim_y] if descriptor_names else f"Descriptor[{dim_x}]"
 
-    # Add grid lines between cells
-    ax.set_xticks(np.arange(-0.5, x_max + 1, 1), minor=True)
-    ax.set_yticks(np.arange(-0.5, y_max + 1, 1), minor=True)
-    ax.grid(which='minor', color='gray', linestyle='-', linewidth=0.2)
+    if "nb" in descriptor_x or "distance" in descriptor_x:
+        xticks = list(range(n_enclaves))
+        xticklabels = [str(x) for x in xticks]
+        x_max = n_enclaves
+    else:
+        xticks = list(range(len(x_bins)))
+        xticklabels = [f"{v:.2f}" for v in x_bins]
+        x_max = len(x_bins)
+
+    if "nb" in descriptor_y or "distance" in descriptor_y:
+        yticks = list(range(n_enclaves))
+        yticklabels = [str(y) for y in yticks]
+        y_max = n_enclaves
+    else:
+        yticks = list(range(len(y_bins)))
+        yticklabels = [f"{v:.2f}" for v in y_bins]
+        y_max = len(y_bins)
+
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+    ax.set_yticks(yticks)
+    ax.set_yticklabels(yticklabels)
+
+    # Labels and formatting
+    ax.set_xlabel(f"bins: {descriptor_x}")
+    ax.set_ylabel(f"bins: {descriptor_y}")
+    ax.set_title("MAP-Elites Fitness Heatmap")
+    plt.colorbar(im, ax=ax, label="Loss")
+
+    # Minor ticks and grid lines
+    ax.set_xticks(np.arange(-0.5, x_max, 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, y_max, 1), minor=True)
+    ax.grid(which='minor', color='gray', linestyle='-', linewidth=0.3)
     ax.tick_params(which='minor', bottom=False, left=False)
 
-    # Labels
-    ax.set_xlabel(f"bins: {descriptor_names[0]}" if descriptor_names else f"bins: Descriptor[{dim_x}]")
-    ax.set_ylabel(f"bins: {descriptor_names[1]}" if descriptor_names else f"bins: Descriptor[{dim_y}]")
-    ax.set_title("MAP-Elites Fitness Heatmap (Loss)")
-    plt.colorbar(im, ax=ax, label="Loss")
     plt.tight_layout()
 
     if save_path:
@@ -70,7 +92,7 @@ def draw_grid_heatmap(
 
 def draw_segmentation_topology(seg: Segmentation, save_path: str = None):
     G = nx.Graph()
-    n = seg.n_enclaves()
+    n = seg.topology.n_enclaves
 
     for i in range(n):
         enclave = seg.enclaves[i]

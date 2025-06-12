@@ -6,7 +6,7 @@ from graphillion import GraphSet
 from network import Device, Enclave, Topology, Segmentation
 from simulation import Simulation
 from metrics import security_loss, performance_loss, resilience_loss, topology_distance
-from parameters import MapElitesConfig
+from config import MapElitesConfig
 
 # ========================================================================================================================
 #                                                 BEHAVIOR DESCRIPTORS
@@ -65,20 +65,23 @@ def behavior_descriptors(seg: Segmentation, descriptors: List[str] = list(DESCRI
 def bins(config: MapElitesConfig) -> List[float]:
     """Discretizes the behavior descriptor into bins."""
     # TODO: Better binning strategy
-    target_bin_count = config.batch_size * 3
-    bin_per_dim = max(2, int(round(target_bin_count ** (1 / len(config.descriptors)))))  # at least 2 per dim
+    n_enclaves = config.n_enclaves
+    num_std = sum(1 for d in config.descriptors if "std" in d)
+    std_bin = max(2, int(round((config.batch_size * 3) ** (1 / num_std))))  # at least 2 per dim
     bin_widths = []
     for descriptor in config.descriptors:
         if "std" in descriptor:
-            bin_widths.append(round(1.0 / bin_per_dim, 2)) # Standard deviation descriptors
+            bin_widths.append(round((n_enclaves + 1) / std_bin, 2)) # Standard deviation descriptors
         elif "nb" in descriptor or "distance" in descriptor:
             bin_widths.append(1.0) # integer descriptors
+        else:
+            bin_widths.append(1.0)
     return bin_widths
 
-def discretize(values: List[float], bin_width: List[float]) -> List[int]:
+def discretize(values: List[float], bin_widths: List[float]) -> List[float]:
     """Discretizes a list of values into bins based on bin widths."""
-    assert len(values) == len(bin_width), "Values and bin widths must have the same length"
-    return tuple(int(d // b) for d, b in zip(values, bin_width))
+    assert len(values) == len(bin_widths), "Values and bin widths must have the same length"
+    return tuple(round(d // b * b, 2) for d, b in zip(values, bin_widths))
 
 
 # ========================================================================================================================
@@ -127,7 +130,7 @@ def mutate_topology(seg_idx: int, topology_list: List[Topology], neighbours_tabl
     Mutate the topology of the segmentation using KNN-based neighbor sampling.
     """
     r = random.random()
-    if r < 0.8:
+    if r < 0.5:
         return topology_list[seg_idx]  # No mutation, return the same topology
     
     # Else, mutate the topology by selecting a neighbour based on KNN
@@ -144,13 +147,13 @@ def mutate_topology(seg_idx: int, topology_list: List[Topology], neighbours_tabl
 
 def mutate_device_distribution(partition: List[List[Device]]) -> List[List[Device]]:
     """Mutates device distribution by randomly moving one device to a different enclave."""
-    enclave_indices = list(range(1, len(partition))) # Non-Internet enclaves
-    if len(enclave_indices) < 1:
-        return new_partition  # No mutation possible
-    
     # Deep copy of the partition to avoid modifying the original
     new_partition = [list(devices) for devices in partition]
     assert new_partition, "Partition should not be empty"
+
+    enclave_indices = list(range(1, len(partition))) # Non-Internet enclaves
+    if len(enclave_indices) <= 1:
+        return new_partition  # No mutation possible
     
     # Remove a random device from a randomly-selected non-empty enclave
     non_empty_indices = [i for i, devices in enumerate(new_partition) if devices]
@@ -239,23 +242,14 @@ def random_segmentation(topology: Topology, config: MapElitesConfig) -> Segmenta
     )
 
 def fitness(config: MapElitesConfig, seg: Segmentation, infected_seg: Segmentation = None) -> float:
-    """Calculates the fitness of a segmentation based on its behavior descriptors."""
-    simulations = [
-        Simulation(seg=seg, 
-                   T=config.total_sim_time, 
-                   times=config.times_in_enclaves,
-                   C_appetite=config.c_appetite,
-                   I_appetite=config.i_appetite,
-                   beta=config.beta,
-                   r_reconnaissance=config.r_reconnaissance,
-                   p_update=config.p_update,
-                   p_network_error=config.p_network_error,
-                   p_device_error=config.p_device_error
-                ) for _ in range(config.n_simulations)]
+    """Calculates the negative total loss of a segmentation based on its behavior descriptors."""
+    is_adaptation = True if infected_seg else False
+    simulations = [Simulation(seg, config, is_adaptation) for _ in range(config.n_simulations)]
     loss = security_loss(simulations) * config.metric_weights[0] + \
            performance_loss(seg) * config.metric_weights[1] + \
            resilience_loss(seg) * config.metric_weights[2]
-    if infected_seg and len(config.metric_weights) > 3:
+    if is_adaptation and len(config.metric_weights) > 3:
+        # Add topology distance for adapted segmentations
         loss += topology_distance(seg.topology.adj_matrix, infected_seg.topology.adj_matrix) * config.metric_weights[3]
     return - loss
 

@@ -1,5 +1,6 @@
 from typing import List
 import math
+from collections import deque
 
 from network import Segmentation
 from simulation import Simulation
@@ -19,7 +20,7 @@ def security_loss(simulations: List[Simulation]) -> float:
         # Sum of compromise value of all turned down devices
         compromise_loss = sum([d.compromise_value for d in seg.all_turned_down_devices()])
         # The cleansing loss if any
-        cleansing_loss = s.cleansing_loss
+        cleansing_loss = s.total_loss
         # Sum of all losses
         loss += information_loss + compromise_loss + cleansing_loss
     return loss / len(simulations)
@@ -51,14 +52,39 @@ def resilience_loss(segmentation: Segmentation) -> float:
     :param network: Network segmentation.
     :return: Average resilience loss across all enclaves.
     """
+    def bfs_connected(start: int, blocked: int, adj_matrix: List[List[int]]) -> set:
+        """Return the set of nodes reachable from `start` without passing through `blocked`."""
+        visited = set()
+        queue = deque([start])
+        while queue:
+            current = queue.popleft()
+            if current == blocked or current in visited:
+                continue
+            visited.add(current)
+            for neighbor, connected in enumerate(adj_matrix[current]):
+                if connected and neighbor not in visited:
+                    queue.append(neighbor)
+        return visited
+
     loss = 0
-    for enclave in segmentation.enclaves:
-        # Total compromise loss in an enclave that becomes disconnected from the Internet
-        offline_loss = sum([d.compromise_value for d in enclave.devices if "resilience_affected" in d.device_group])
-        # Resilience loss incurred by removing the enclave from the segmentation
-        resilience_loss = offline_loss + sum([d.compromise_value for d in enclave.devices])
-        loss += resilience_loss
-    return loss / (len(segmentation.enclaves) - 1) if len(segmentation.enclaves) > 1 else 0
+    n_enclaves = segmentation.topology.n_enclaves
+
+    for id in range(1, n_enclaves):  # Skip Internet
+        e = segmentation.enclaves[id]
+        reachable = bfs_connected(start=0, blocked=id, adj_matrix=segmentation.topology.adj_matrix)
+
+        # Loss incurred inside the enclave
+        enclave_loss = sum(d.compromise_value for d in e.devices)
+
+        # Loss from enclaves that become disconnected
+        for i in range(1, n_enclaves):
+            if i != id and i not in reachable:
+                disconnected = segmentation.enclaves[i]
+                enclave_loss += sum(d.compromise_value for d in disconnected.devices)
+
+        loss += enclave_loss
+
+    return loss / (n_enclaves - 1) if n_enclaves > 1 else 0
 
 
 def topology_distance(matrix1: List[List[int]], matrix2: List[List[int]]) -> float:

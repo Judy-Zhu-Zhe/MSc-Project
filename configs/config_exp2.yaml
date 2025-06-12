@@ -1,0 +1,26 @@
+name: Exp2
+n_enclaves: 5
+init_batch: 10000
+batch_size: 4000
+generations: 100
+
+constraints:
+  max_isps: 2
+
+n_devices:
+  Employee computer: 35
+  Printer: 1
+  Printer server: 1
+  DNS server: 1
+  DHCP server: 1
+  E-mail server: 1
+  Web server: 1
+  SQL database: 1
+  Syslog server: 1
+  Authentication server: 1
+
+vulnerabilities: [1, 0.5, 0.6, 0.7, 0.8]
+total_sim_time: 132
+times_in_enclaves: [0, 30, 30, 30, 30]
+descriptors: ["nb_high_deg_nodes", "std_devices", "std_web_facing"]
+metric_weights: [1, 0.05, 0.5]

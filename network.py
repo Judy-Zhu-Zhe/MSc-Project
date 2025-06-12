@@ -1,7 +1,7 @@
 import random
 from collections import deque
 
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Dict, Optional
 
 DEVICE_GROUPS = {
     "Authentication server": ["high_value"],
@@ -9,7 +9,7 @@ DEVICE_GROUPS = {
     "Web server": ["performance_affecting", "resilience_affected"],
     "E-mail server": ["performance_affecting", "resilience_affected"],
     "DNS server": ["performance_affecting", "resilience_affected"],
-    "Database": ["performance_affecting"],
+    "SQL database": ["performance_affecting"],
     "Employee computer": ["resilience_affected"]
 }
 
@@ -20,11 +20,11 @@ DEVICE_VALUES = {
     "Printer": (0.05, 0.02),
     "Employee computer": (0.05, 0.1),
     "Printer server": (0.1, 0.2),
-    "DNS Server": (0.2, 0.5),
-    "DHCP Server": (0.1, 0.1),
+    "DNS server": (0.2, 0.5),
+    "DHCP server": (0.1, 0.1),
     "E-mail server": (7, 9),
     "Web server": (10, 6),
-    "SQL Database": (70, 100),
+    "SQL database": (70, 100),
     "Syslog server": (100, 100),
     "Authentication server": (100, 100),
     "Low value device": (0.001, 0.001),
@@ -83,13 +83,21 @@ class Device:
 # ========================================================================================================================
 
 class Enclave:
-    def __init__(self, id: int, vulnerability: float = 0, sensitivity: float = 0, devices: List[Device] = [], low_value_devices: List[Device] = [], dist_to_internet: int = None):
+    def __init__(self, 
+            id: int, 
+            vulnerability: float = 0, 
+            sensitivity: float = 0, 
+            devices: List[Device] = [], 
+            low_value_devices: List[Device] = [], 
+            dist_to_internet: int = None
+            ):
         """
         :param id: Identifier for the enclave
         :param vulnerability: Vulnerability of the enclave to compromise
         :param sensitivity: How quickly enclave cleansing is triggered in the event of a compromise
         :param devices: List of devices within the enclave
-        :param neighbours: List of neighbouring enclave indices
+        :param low_value_devices: List of low-value devices within the enclave
+        :param dist_to_internet: Number of hops to the internet (used for BFS)
         """
         self.id = id
         self.vulnerability = vulnerability
@@ -99,15 +107,6 @@ class Enclave:
         self.compromised = False
         self.cleansing_loss = 0
         self.dist_to_internet: Optional[int] = dist_to_internet  # Number of hops to the internet
-
-    def add_device(self, device: Device):
-        self.devices.append(device)
-
-    def remove_device(self, device: Device):
-        if device in self.devices:
-            self.devices.remove(device)
-        else:
-            raise ValueError(f"Device {device.name} not found in enclave {self.id}.")
         
     def num_devices(self) -> int:
         """Returns the number of non-low-value devices in the enclave."""
@@ -276,37 +275,35 @@ class Segmentation:
                 low_value_devices=low_value_devices,
                 dist_to_internet=self.topology.dist_to_internet[i]
                 )
-
             self.enclaves.append(e)
 
-        # Connect enclaves based on the topology
-        # TODO: enclave need neighbours?
-        # for i, row in enumerate(self.topology.adj_matrix):
-        #     neighbours = [j for j, val in enumerate(row) if val == 1 and i != j]
-        #     self.enclaves[i].neighbours = neighbours
-
-        # self.update_distances()  # Update distances to the internet for all enclaves
+    def randomly_infect(self, n: int = 1, devices: Dict[str, int] = None):
+        """
+        Randomly infects n devices in the network (for adaptation).
         
-    # def update_distances(self):
-    #     """Updates the distances to the internet for all enclaves."""
-    #     for e in self.enclaves:
-    #         if e != self.internet:
-    #             e.dist_to_internet = None
-    #     # BFS to calculate distances from the internet
-    #     visited = set()
-    #     queue = deque([(self.internet, 0)])
-    #     while queue:
-    #         current, dist = queue.popleft()
-    #         current.distance_to_internet = dist
-    #         visited.add(current)
-    #         for n in current.neighbours:
-    #             neighbor = self.enclaves[n]
-    #             if neighbor not in visited and neighbor.dist_to_internet is None:
-    #                 queue.append((neighbor, dist + 1))
+        :param n: Number of devices to infect
+        :param devices: Optional dictionary of device types and counts to infect specific devices
+        """
+        all_devices = [d for e in self.enclaves for d in e.all_devices()]
+        if not all_devices:
+            raise ValueError("No devices available to infect in the segmentation.")
+        
+        if devices:
+            # If specific devices are provided, infect those instead
+            infected_devices: List[Device] = []
+            for device_type, count in devices.items():
+                matching_devices = [d for d in all_devices if d.device_type == device_type]
+                if len(matching_devices) < count:
+                    raise ValueError(f"Not enough devices named {device_type} to infect {count}.")
+                infected_devices.extend(random.sample(matching_devices, count))
+        else:
+            # Randomly select n devices from all devices
+            if n > len(all_devices):
+                raise ValueError(f"Cannot infect {n} devices, only {len(all_devices)} available.")
+            infected_devices = random.sample(all_devices, n)
 
-    def n_enclaves(self) -> int:
-        """Returns the number of enclaves in the network."""
-        return len(self.enclaves)
+        for device in infected_devices:
+            device.infect()
         
     def compromised_enclaves(self) -> List[Enclave]:
         """Returns a list of enclaves that are compromised."""

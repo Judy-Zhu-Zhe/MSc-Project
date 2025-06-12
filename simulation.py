@@ -1,49 +1,31 @@
-from typing import List
+from typing import List, Tuple
 import random
 import copy
 
 from network import Device, Enclave, Segmentation
+from config import MapElitesConfig
 
 class Simulation:
-    def __init__(self, seg: Segmentation, 
-                 T: int,
-                 times: List[int],
-                 C_appetite: float, 
-                 I_appetite: float, 
-                 beta: int, 
-                 r_reconnaissance: float, 
-                 p_update: float = 1/90,
-                 p_network_error: float = 0.7,
-                 p_device_error: float = 0.7,
-                 adaptation: bool = False
-                 ) -> None:
+    def __init__(self, seg: Segmentation, config: MapElitesConfig, is_adaptation: bool) -> None:
         """
         :param seg: The initialized network segmentation
-        :param T: Simulation time
-        :param times: List of times spend in each enclave
-        :param C_appetite: Attacker compromise appetite
-        :param I_appetite: Attacker information appetite
-        :param beta: Beta value for device selection
-        :param r: Reconnaissance rate
-        :param p_device_error: Probability of device error
-        :param p_network_error: Probability of network error
-        :param k: Number of top k devices to select
+        :param config: The configuration for the simulation
         """
         self.segmentation = copy.deepcopy(seg) # Copy to avoid modifying the original segmentation
-        self.T = T
-        self.times = times
+        self.T = config.total_sim_time
+        self.times = config.times_in_enclaves
         self.spent_time = 0
-        self.C_appetite = C_appetite
-        self.I_appetite = I_appetite
-        self.beta = beta
-        self.r_reconnaissance = r_reconnaissance
-        self.p_update = p_update
-        self.p_network_error = p_network_error
-        self.p_device_error = p_device_error
-        if adaptation:
-            self.cleansing_loss = self.simulate_adaption()
+        self.C_appetite = config.c_appetite
+        self.I_appetite = config.i_appetite
+        self.k_to_infect = config.k_to_infect
+        self.r_reconnaissance = config.r_reconnaissance
+        self.p_update = config.p_update
+        self.p_network_error = config.p_network_error
+        self.p_device_error = config.p_device_error
+        if is_adaptation:
+            self.total_loss = self.simulate_adaption()
         else:
-            self.cleansing_loss = self.simulate_network()
+            self.total_loss = self.simulate_network()
 
     def simulate_network(self) -> float:
         """
@@ -71,7 +53,7 @@ class Simulation:
     #                                                      ATTACK
     # ========================================================================================================================
 
-    def device_compromise(self, device: Device) -> bool:
+    def device_compromise(self, device: Device) -> Tuple[bool, float]:
         """
         ### Algorithm 4 ###
         Simulate the compromise of a device.
@@ -84,6 +66,7 @@ class Simulation:
         if not device.has_been_infected:
             loss += device.prior_information_value
         device.infect()
+        # If the compromise is successful, the device is turned down
         compromise = random.random()
         device.turned_down = False
         if compromise <= self.C_appetite:
@@ -119,7 +102,7 @@ class Simulation:
         
         recon_time = self.reconnaissance(enclave, time)
         for _ in range(recon_time, time):
-            to_infect = self.select_k_best(self.beta, enclave.all_devices())
+            to_infect = self.select_k_best(self.k_to_infect, enclave.all_devices())
             for device in to_infect:
                 # Add alert if the infection is detected (and blocked) or if the device is turned down
                 test_alert = False
@@ -164,8 +147,7 @@ class Simulation:
         Select the k best devices to infect based on their true information value and compromise value.
         
         :param k: Number of devices to select
-        :param alpha: Weight for true information value
-        :param beta: Weight for compromise value
+        :param devices: List of devices to select from
         """
         sorted_devices = sorted(
             [d for d in devices if not d.infected],
@@ -221,7 +203,7 @@ class Simulation:
                 for d in e.all_devices():
                     if d.infected:
                         internal_loss += self.enclave_spread(e, self.times[e.id], d)
-                        self.spent_time += self.times[e]
+                        self.spent_time += self.times[e.id]
         return internal_loss
     
 
@@ -252,7 +234,7 @@ class Simulation:
         :return: Cleansing loss incurred by the enclave."""
         return sum(d.compromise_value for d in enclave.infected_devices())
 
-    def cleansing_loss_without_investigation(enclave: Enclave) -> float:
+    def cleansing_loss_without_investigation(self, enclave: Enclave) -> float:
         """Trigger cleansing without investigation 
         (enclave cleansing normally triggered).
         
@@ -267,17 +249,15 @@ class Simulation:
         :param alert: Number of alerts detected in the enclave
         :return: True if the enclave detects an intrusion, False otherwise.
         """
-        return random.random() <= enclave.sensitivity * alert / len(enclave.all_devices())
+        num_devices = len(enclave.all_devices())
+        if num_devices == 0:
+            return False
+        return random.random() <= enclave.sensitivity * alert / num_devices
     
-    def regular_update(self, seg: Segmentation) -> bool:
-        """
-        Simulate a regular update of the network.
-
-        :param network: The network to update
-        :return: True if the update is successful, False otherwise.
-        """
+    def regular_update(self) -> bool:
+        """Simulate a regular update of the network."""
         if random.random() <= 1 - self.p_update:
-            for enclave in seg.enclaves:
+            for enclave in self.segmentation.enclaves:
                 self.enclave_cleansing(enclave) # Model scheduled updates so no loss
             return True
         return False

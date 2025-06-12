@@ -1,0 +1,10 @@
+name: Adaptation
+init_batch: 400
+batch_size: 400
+generations: 30
+
+constraints:
+  max_isps: 2
+
+metric_weights: [1, 0, 0, 200]
+

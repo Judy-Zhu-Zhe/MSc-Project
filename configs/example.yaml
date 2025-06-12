@@ -1,0 +1,78 @@
+# Name for this configuration (used in filenames)
+name: Example
+
+# Number of enclaves in the network (including Internet enclave at index 0)
+n_enclaves: 5
+
+# Number of random segmentations to generate initial grid
+init_batch: 1000
+
+# Number of new segmentations generated per generation
+batch_size: 500
+
+# Number of MAP-Elites generations to run
+generations: 50
+
+# Topology generation constraints
+constraints:
+  max_isps: 2           # Max number of direct connections for the Internet (Enclave 0)
+  max_degree: 4         # Max number of connections for other enclaves
+
+# Dictionary of device types and counts to generate in the network
+n_devices:
+  Printer: 2
+  Employee computer: 10
+  Printer server: 1
+  DNS server: 2
+  DHCP server: 1
+  E-mail server: 1
+  Web server: 1
+  SQL Database: 1
+  Syslog server: 1
+  Authentication server: 1
+  
+# Number of "low-value" devices added to each enclave (ramdomly choosen from 0 to n)
+n_low_value_device: 30
+
+# Sensitivity of each enclave: higher values = more likely to trigger cleansing
+sensitivities: [0.4, 0.5, 0.6, 0.7, 0.8]
+
+# Vulnerability of each enclave: higher = easier for attacker to compromise
+vulnerabilities: [1, 0.9, 0.8, 0.6, 0.4]
+
+# Maximum time attacker can spend in an attack simulation
+total_sim_time: 48
+
+# Time spent in each enclave before moving on
+times_in_enclaves: [0, 10, 10, 14, 14]  # index 0 (Internet) is always compromised
+
+# Behaviour descriptors used to define MAP-Elites feature dimensions
+descriptors: ["nb_high_deg_nodes", "std_devices", "std_web_facing", "ratio_sensitive"]
+
+# Weights for the multi-objective fitness metric (security, performance, resilience, and similarity)
+metric_weights: [1, 0.05, 0.5, 200]
+
+# Probability of a successful update happening on a given tick
+p_update: 0.02
+
+# Probability that a network-level detection system fails to detect infection
+p_network_error: 0.6
+
+# Probability that a device-level IDS/IPS fails to detect infection
+p_device_error: 0.5
+
+# Fraction of enclave time spent doing reconnaissance before launching infection
+r_reconnaissance: 0.8
+
+# Attacker's appetite for compromising (turning off) a device
+c_appetite: 0.95
+
+# Attacker's appetite for information (stealing data) from a device
+i_appetite: 0.5
+
+# Number of top-scoring devices the attacker will attempt to infect
+k_to_infect: 3
+
+# η parameter for sensitivity mutation: higher values = more aggressive mutations
+eta: 5.0
+
