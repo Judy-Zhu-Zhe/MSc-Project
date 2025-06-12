@@ -21,6 +21,6 @@ n_devices:
 
 vulnerabilities: [1, 0.5, 0.6, 0.7, 0.8]
 total_sim_time: 132
-times_in_enclaves: [0, 30, 30, 30, 30]
+time_in_enclave: 30
 descriptors: ["nb_high_deg_nodes", "std_devices", "std_web_facing"]
 metric_weights: [1, 0.05, 0.5]

@@ -106,8 +106,21 @@ def load_config_from_yaml(yaml_path: str) -> MapElitesConfig:
         data["devices"] = generate_devices(data.get("n_devices", {}))
         data.pop("n_devices")
 
+    if "time_in_enclave" in data.keys():
+        # Generate list of times in enclaves
+        data["times_in_enclaves"] = [0] + [data["time_in_enclave"]] * (data.get("n_enclaves", 5) - 1)
+        data.pop("time_in_enclave")
+
     return MapElitesConfig(**data)
 
+def update_config_for_adptation(config: MapElitesConfig) -> MapElitesConfig:
+    """Update the configuration for adaptation."""
+    config.name += "_adaptation"
+    assert len(config.metric_weights) == 3, "Metric weights should have 3 elements for adaptation."
+    config.metric_weights.append(200)  # Add weight for "dissimilarity"
+    return config
+    
+    
 def generate_filename(config: MapElitesConfig) -> str:
     """Generate a filename based on the configuration and current timestamp."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

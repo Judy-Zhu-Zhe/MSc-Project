@@ -38,13 +38,13 @@ n_low_value_device: 30
 sensitivities: [0.4, 0.5, 0.6, 0.7, 0.8]
 
 # Vulnerability of each enclave: higher = easier for attacker to compromise
-vulnerabilities: [1, 0.9, 0.8, 0.6, 0.4]
+vulnerabilities: [1, 0.9, 0.8, 0.6, 0.4] # Encalve 0 (Internet) is always compromised
 
 # Maximum time attacker can spend in an attack simulation
 total_sim_time: 48
 
 # Time spent in each enclave before moving on
-times_in_enclaves: [0, 10, 10, 14, 14]  # index 0 (Internet) is always compromised
+time_in_enclave: 6
 
 # Behaviour descriptors used to define MAP-Elites feature dimensions
 descriptors: ["nb_high_deg_nodes", "std_devices", "std_web_facing", "ratio_sensitive"]

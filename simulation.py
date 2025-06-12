@@ -199,11 +199,10 @@ class Simulation:
         """
         internal_loss = 0
         for e in self.segmentation.enclaves:
-            if e.compromised:
-                for d in e.all_devices():
-                    if d.infected:
-                        internal_loss += self.enclave_spread(e, self.times[e.id], d)
-                        self.spent_time += self.times[e.id]
+            for d in e.all_devices():
+                if d.infected:
+                    internal_loss += self.enclave_spread(e, self.times[e.id], d)
+                    self.spent_time += self.times[e.id]
         return internal_loss
     
 

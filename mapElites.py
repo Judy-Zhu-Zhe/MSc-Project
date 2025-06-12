@@ -245,9 +245,13 @@ def fitness(config: MapElitesConfig, seg: Segmentation, infected_seg: Segmentati
     """Calculates the negative total loss of a segmentation based on its behavior descriptors."""
     is_adaptation = True if infected_seg else False
     simulations = [Simulation(seg, config, is_adaptation) for _ in range(config.n_simulations)]
-    loss = security_loss(simulations) * config.metric_weights[0] + \
-           performance_loss(seg) * config.metric_weights[1] + \
-           resilience_loss(seg) * config.metric_weights[2]
+    loss = security_loss(simulations) * config.metric_weights[0]
+    if config.metric_weights[1]:
+        # Add performance loss
+        loss += performance_loss(seg) * config.metric_weights[1]
+    if config.metric_weights[2]:
+        # Add resilience loss
+        loss += resilience_loss(seg) * config.metric_weights[2]
     if is_adaptation and len(config.metric_weights) > 3:
         # Add topology distance for adapted segmentations
         loss += topology_distance(seg.topology.adj_matrix, infected_seg.topology.adj_matrix) * config.metric_weights[3]
@@ -272,7 +276,10 @@ def map_elites(topology_list: List[Topology],
     # Initialization phase
     print(f"\n++++++++++++++++++ Initializing with {config.init_batch} segmentations ++++++++++++++++++")
     for _ in range(config.init_batch):
-        seg = random_segmentation(random.choice(topology_list), config)
+        if infected_segmentation:
+            seg = mutate(infected_segmentation, topology_list, neighbours_table, distances_table, n_low_value_device=config.n_low_value_device)
+        else:
+            seg = random_segmentation(random.choice(topology_list), config)
         desc = behavior_descriptors(seg, config.descriptors)
         key = discretize(desc, bin_widths)
         f = fitness(config, seg, infected_segmentation)

@@ -67,7 +67,7 @@ Run main.py with an additional flags:
 
 Example:
 ```
-python main.py --config configs/config_adp.yaml --seg segmentations/Exp1/seg_Exp1_batch400_gen30_20250603_155556.json --save
+python main.py --config configs/config_exp1.yaml --seg segmentations/Exp1/seg_Exp1_batch400_gen30_20250603_155556.json --save
 ```
 
 ## 📊 Output saved
