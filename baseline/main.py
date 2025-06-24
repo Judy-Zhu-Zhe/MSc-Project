@@ -4,7 +4,7 @@ import argparse
 from network import Segmentation
 from mapElites import map_elites, topology_neighbours
 from visualization import draw_grid_heatmap, draw_segmentation_topology
-from config import MapElitesConfig, load_config_from_yaml, generate_filename, save_results, load_segmentation, load_grid
+from config import MapElitesConfig, load_config_from_yaml, update_config_for_adptation, generate_filename, save_results, load_segmentation, load_grid
 
 def run_segmentation(config: MapElitesConfig, infected_seg: Segmentation = None, save: bool = False):
     """
@@ -63,6 +63,7 @@ if __name__ == "__main__":
 
     if args.seg:
         seg = load_segmentation(args.seg)
+        config = update_config_for_adptation(config)
         seg.randomly_infect(devices={"Employee computer": 1}) # Change to intended device to infect
         draw_segmentation_topology(seg)
         run_segmentation(config, infected_seg=seg, save=args.save)

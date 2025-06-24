@@ -18,3 +18,6 @@ n_devices:
   SQL database: 1
   Syslog server: 1
   Authentication server: 1
+
+descriptors: ["nb_high_deg_nodes", "std_devices"]
+metric_weights: [1, 0, 0]

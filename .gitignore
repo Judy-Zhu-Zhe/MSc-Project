@@ -1,3 +1,4 @@
-﻿__pycache__
-imgs
-segmentations
+﻿compositional/__pycache__
+compositional/data
+baseline/imgs
+baseline/segmentations

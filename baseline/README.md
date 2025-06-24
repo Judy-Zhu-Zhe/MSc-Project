@@ -32,6 +32,7 @@ Judy Zhu
 ## 🚀 Running Code
 
 ### 1. Install Dependencies
+This project requires Python 3.9 or higher. Install dependencies with:
 
 ```
 pip install -r requirements.txt

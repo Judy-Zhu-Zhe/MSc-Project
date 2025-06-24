@@ -85,7 +85,7 @@ class MapElitesConfig:
     i_appetite: float = I_APPETITE
     k_to_infect: int = BETA
     eta: float = 10.0
-    metric_weights: List[float] = field(default_factory=lambda: [1, 0, 0, 0])
+    metric_weights: List[float] = field(default_factory=lambda: [1, 0, 0])
 
 def define_config(**overrides) -> MapElitesConfig:
     return MapElitesConfig(**overrides)
