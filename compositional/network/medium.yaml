@@ -1,0 +1,30 @@
+name: medium
+
+devices:
+  # Public-facing DMZ
+  Web server: 2
+  DNS server: 1
+  E-mail server: 1
+
+  # High-value Authentication & Logging Zone
+  Authentication server: 1
+  Syslog server: 1
+
+  # Database Zone
+  SQL database: 2
+
+  # IT Services Zone
+  DHCP server: 1
+  DNS server: 1  # Internal
+  Printer server: 1
+  Admin computer: 2
+
+  # Employee Network
+  Workstation: 25
+
+  # Guest Access Zone
+  Guest device: 10
+  IOT device: 20
+
+  # Shared Printer Zone
+  Printer: 6

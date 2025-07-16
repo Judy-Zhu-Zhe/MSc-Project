@@ -60,6 +60,7 @@ Specifies the YAML configuration file that defines your experiment.
 Example:
 ```
 python main.py --config configs/config_exp1.yaml --save
+python compositional/main.py --config compositional/configs/config_compositional.yaml
 ```
 
 ### 4. Adaptation Run (Optional)

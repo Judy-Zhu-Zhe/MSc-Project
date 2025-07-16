@@ -3,6 +3,7 @@ import networkx as nx
 import numpy as np
 import os
 from collections import Counter
+from typing import Optional
 
 from network import Segmentation
 
@@ -11,8 +12,8 @@ def draw_grid_heatmap(
     n_enclaves: int,
     dim_x: int = 0,
     dim_y: int = 1,
-    descriptor_names: list = None,
-    save_path: str = None
+    descriptor_names: Optional[list] = None,
+    save_path: Optional[str] = None
 ):
     # Extract values
     points = [
@@ -90,42 +91,79 @@ def draw_grid_heatmap(
     plt.show()
 
 
-def draw_segmentation_topology(seg: Segmentation, save_path: str = None):
+def draw_segmentation_topology(seg: Segmentation, save_path: Optional[str] = None):
+    """
+    Draws hierarchical segmentation topology:
+    - Outer circles represent macro-enclaves
+    - Inner nodes represent sub-enclaves if `seg.child_segmentation` is defined
+    - Only inner-most nodes contain device info text
+    """
     G = nx.Graph()
-    n = seg.topology.n_enclaves
+    parent_n = seg.topology.n_enclaves
+    pos = {}
+    sizes = []
+    colors = []
+    labels = {}
 
-    for i in range(n):
-        enclave = seg.enclaves[i]
-        size = len(enclave.devices)
-        if i == 0:
-            label = "Internet"
-        else:
-            device_counts = Counter(d.device_type for d in enclave.devices)
+    # Positioning layout for parent enclaves
+    parent_layout = nx.circular_layout(range(parent_n))
+
+    for i in range(parent_n):
+        parent_enclave = seg.enclaves[i]
+        base_pos = parent_layout[i]
+
+        # If no child segmentation, draw a single circle
+        if not hasattr(seg, "child_segmentations") or seg.child_segmentations is None:
+            device_counts = Counter(d.device_type for d in parent_enclave.devices)
             device_lines = "\n".join(f"{dtype}: {count}" for dtype, count in device_counts.items())
             label = (
                 f"Enclave {i}\n"
-                f"s = {enclave.sensitivity:.2f}, v = {enclave.vulnerability:.2f}\n"
-                f"Device num = {size}\n"
+                f"s = {parent_enclave.sensitivity:.2f}, v = {parent_enclave.vulnerability():.2f}\n"
+                f"Device num = {len(parent_enclave.devices)}\n"
                 f"{{{device_lines}}}"
             )
-        color = "orange" if i == 0 else "lightblue"
-        G.add_node(i, label=label, size=size, color=color)
+            G.add_node(f"P{i}", label=label)
+            pos[f"P{i}"] = base_pos
+            sizes.append(len(parent_enclave.devices) * 1200 + 500)
+            colors.append("orange" if i == 0 else "lightblue")
+            labels[f"P{i}"] = label
+        else:
+            # Parent circle
+            G.add_node(f"P{i}", label=f"Enclave {i}")
+            pos[f"P{i}"] = base_pos
+            sizes.append(2500)
+            colors.append("skyblue")
+            labels[f"P{i}"] = f"Enclave {i}"
 
-    for i in range(n):
-        for j in range(i + 1, n):
+            # Add child enclaves inside this parent
+            if hasattr(seg, "child_segmentations") and seg.child_segmentations and i < len(seg.child_segmentations):
+                child_seg = seg.child_segmentations[i]
+                child_layout = nx.circular_layout(range(len(child_seg.enclaves)))
+                for j, child_enclave in enumerate(child_seg.enclaves):
+                    child_id = f"P{i}_C{j}"
+                    dx, dy = child_layout[j] * 0.2  # small offset
+                    pos[child_id] = base_pos + [dx, dy]
+                    G.add_node(child_id)
+                    sizes.append(600)
+                    colors.append("lightgreen")
+                    device_counts = Counter(d.device_type for d in child_enclave.devices)
+                    device_lines = "\n".join(f"{dtype}: {count}" for dtype, count in device_counts.items())
+                    labels[child_id] = (
+                        f"s = {child_enclave.sensitivity:.2f}, v = {child_enclave.vulnerability():.2f}\n"
+                        f"{device_lines}"
+                    )
+                    G.add_edge(f"P{i}", child_id)
+
+    # Draw edges between parent enclaves
+    for i in range(parent_n):
+        for j in range(i + 1, parent_n):
             if seg.topology.adj_matrix[i][j]:
-                G.add_edge(i, j)
+                G.add_edge(f"P{i}", f"P{j}")
 
-    pos = nx.spring_layout(G, seed=42)
-    sizes = [G.nodes[i]["size"] * 1200 + 500 for i in G.nodes]
-    sizes[0] = 2000
-    colors = [G.nodes[i]["color"] for i in G.nodes]
-    labels = {i: G.nodes[i]["label"] for i in G.nodes}
-
-    fig, ax = plt.subplots(figsize=(8, 8), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(10, 10), constrained_layout=True)
     nx.draw(G, pos, node_size=sizes, node_color=colors, with_labels=False, edge_color="gray", ax=ax)
     nx.draw_networkx_labels(G, pos, labels=labels, font_size=8, ax=ax)
-    ax.set_title("Network Segmentation Topology")
+    ax.set_title("Hierarchical Network Segmentation")
     ax.axis("off")
 
     if save_path:

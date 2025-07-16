@@ -1,0 +1,53 @@
+name: large
+
+devices:
+  # User & Office Devices
+  Workstation: 80
+  Admin computer: 5
+  Guest device: 20
+  Printer: 10
+  Printer server: 2
+  Conference system: 3
+
+  # Core Network Services
+  DNS server: 3
+  DHCP server: 3
+  Authentication server: 3
+  NTP server: 2
+  Syslog server: 2
+  Firewall appliance: 4
+  IDS/IPS system: 4
+
+  # Application & Data Layer
+  E-mail server: 3
+  Web server: 4
+  SQL database: 5
+  File server: 4
+  Backup server: 2
+  Application server: 6
+  Directory server (LDAP): 2
+  Remote access gateway (VPN): 2
+
+  # Management & Monitoring
+  Network management console: 1
+  Security monitoring server (SIEM): 1
+  Patch management server: 1
+
+  # Development & Testing
+  Dev workstation: 10
+  Test server: 5
+  Git/CI server: 2
+  Staging web server: 2
+
+  # IoT / OT / Special Zones
+  IoT sensor: 15
+  IoT controller: 5
+  CCTV camera: 12
+  HVAC controller: 3
+  Building access panel: 5
+
+  # DMZ & Public-Facing Services
+  Public web server: 2
+  External DNS relay: 1
+  Reverse proxy: 1
+  Bastion host: 1

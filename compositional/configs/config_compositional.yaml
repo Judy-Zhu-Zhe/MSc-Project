@@ -1,0 +1,110 @@
+name: "Compositional_Experiment"
+
+low:
+  - level: 0
+    n_enclaves: 4 # Fewer enclaves for low-trust, broad grouping
+    constraints:
+      max_isps: 1  # Guest & low-value devices likely share the same gateway
+      max_degree: 3
+    sensitivities: [0.0, 0.6, 0.3, 0.1]  # Lower cleansing aggressiveness
+    descriptors: ["std_devices", "nb_high_deg_nodes"]
+    evaluation_metrics:
+      attack_surface_exposure: 1.0
+      trust_separation_score: 0.5  # Less focus on strict separation for low-trust
+    generations: 100
+  
+  - level: 1
+    n_enclaves: 4  # More precise split after coarse grouping
+    sensitivities: [0.0, 0.6, 0.3, 0.1]
+    descriptors: ["std_devices", "std_resilience"]
+    evaluation_metrics:
+      security_loss: 1.0
+      performance_loss: 0.3  # Lower as performance isn't critical for guests/printers
+      resilience_loss: 0.5
+    init_batch: 10
+    generations: 50
+    batch_size: 4
+    time_in_enclaves: 3
+    n_simulations: 5
+
+medium:
+  - level: 0
+    n_enclaves: 4  # Suitable for IT services and internal employee network
+    constraints:
+      max_isps: 1
+      max_degree: 4
+    sensitivities: [0.0, 0.8, 0.6, 0.3]
+    descriptors: ["std_devices", "nb_high_deg_nodes"]
+    evaluation_metrics:
+      attack_surface_exposure: 0.7
+      trust_separation_score: 1.0  # Preserve separation between services and users
+    generations: 100
+
+  - level: 1
+    n_enclaves: 5  # Finer segmentation within IT & employees
+    sensitivities: [0.0, 0.8, 0.6, 0.3, 0.1]
+    descriptors: ["std_devices", "std_resilience", "std_web_facing"]
+    evaluation_metrics:
+      security_loss: 1.0
+      performance_loss: 0.7
+      resilience_loss: 0.6
+    init_batch: 10
+    generations: 50
+    batch_size: 5
+    time_in_enclaves: 6
+    n_simulations: 7
+
+  - level: 2
+    n_enclaves: 4  # Finer-grained within IT & employees
+    sensitivities: [0.1, 0.7, 0.9, 1.0]
+    descriptors: ["std_devices", "std_high_value"]
+    evaluation_metrics:
+      security_loss: 1.0
+      performance_loss: 0.5
+      resilience_loss: 0.7
+    init_batch: 4
+    generations: 50
+    batch_size: 4
+    time_in_enclaves: 6
+    n_simulations: 5
+
+high:
+  - level: 0
+    n_enclaves: 3  # DMZ + Auth/Logging + SQL zones
+    constraints:
+      max_isps: 2  # Possibly multi-homed (e.g., public web + secure backend)
+      max_degree: 2
+    sensitivities: [0.1, 0.7, 0.9]  # More aggressive IDS
+    descriptors: ["std_devices", "distance_high_val"]
+    evaluation_metrics:
+      attack_surface_exposure: 0.5
+      trust_separation_score: 1.0  # Critical to isolate assets
+    generations: 100
+
+  - level: 1
+    n_enclaves: 4  # Fine-grain inside critical zones
+    sensitivities: [0.1, 0.7, 0.9, 1.0]
+    descriptors: ["std_devices", "std_high_value"]
+    evaluation_metrics:
+      security_loss: 1.0
+      performance_loss: 0.5
+      resilience_loss: 0.7
+    init_batch: 10
+    generations: 50
+    batch_size: 4
+    time_in_enclaves: 6
+    n_simulations: 10
+
+  - level: 2
+    n_enclaves: 4  # Finer-grained inside critical zones
+    sensitivities: [0.1, 0.7, 0.9, 1.0]
+    descriptors: ["std_devices", "std_high_value"]
+    evaluation_metrics:
+      security_loss: 1.0
+      performance_loss: 0.5
+      resilience_loss: 0.7
+    init_batch: 4
+    generations: 50
+    batch_size: 4
+    time_in_enclaves: 6
+    n_simulations: 5
