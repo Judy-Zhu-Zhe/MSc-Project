@@ -8,15 +8,16 @@ devices:
 
   # High-value Authentication & Logging Zone
   Authentication server: 1
+  Domain controller: 1      # Critical for domain management
   Syslog server: 1
 
   # Database Zone
-  SQL database: 2
+  SQL database: 5
 
   # IT Services Zone
   DHCP server: 1
   DNS server: 1  # Internal
-  Printer server: 1
+  Printer server: 2
   Admin computer: 2
 
   # Employee Network
@@ -24,7 +25,7 @@ devices:
 
   # Guest Access Zone
   Guest device: 10
-  IOT device: 20
+  IOT device: 10
 
   # Shared Printer Zone
-  Printer: 6
+  Printer: 5

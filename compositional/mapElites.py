@@ -1,79 +1,12 @@
-import statistics
 import random
 import copy
 from typing import List, Tuple, Dict, Optional
 
-from network import Device, Enclave, Topology, Segmentation, SegmentationNode
+from network import Device, Topology, Segmentation, SegmentationNode
 from simulation import Simulation
 from metrics import *
+from descriptors import *
 from config import MapElitesConfig, CompositionalConfig
-
-# ========================================================================================================================
-#                                                 BEHAVIOR DESCRIPTORS
-# ========================================================================================================================
-
-def nb_high_deg_nodes(segmentation: Segmentation) -> int:
-    """Returns the number of enclaves with more than 2 neighbours."""
-    return sum(1 for n in segmentation.topology.adj_matrix if sum(n) > 3)
-
-def std_devices(segmentation: Segmentation) -> float:
-    """Returns the standard deviation of the number of devices in enclaves."""
-    if len(segmentation.enclaves) > 1:
-        return statistics.stdev([len(e.devices) for e in segmentation.enclaves])
-    return 0.0
-
-def std_high_value(segmentation: Segmentation) -> float:
-    """Returns the standard deviation of the number of high-value devices in enclaves."""
-    if len(segmentation.enclaves) > 1:
-        return statistics.stdev([sum(1 for d in e.devices if d.compromise_value > 5) for e in segmentation.enclaves])
-    return 0.0
-
-def std_web_facing(segmentation: Segmentation) -> float:
-    """Returns the standard deviation of the number of web-facing devices in enclaves."""
-    if len(segmentation.enclaves) > 1:
-        return statistics.stdev([sum(1 for d in e.devices if d.internet_sensitive) for e in segmentation.enclaves])
-    return 0.0
-
-def std_resilience(segmentation: Segmentation) -> float:
-    """Returns the standard deviation of the number of resilience-affected devices in enclaves."""
-    if len(segmentation.enclaves) > 1:
-        return statistics.stdev([sum(1 for d in e.devices if d.internet_required) for e in segmentation.enclaves])
-    return 0.0
-
-def distance_high_val(segmentation: Segmentation) -> int:
-    """Returns the sum of distances to the internet for high-value devices."""
-    return sum(e.dist_to_internet for e in segmentation.enclaves for d in e.devices if d.compromise_value > 5 and e.dist_to_internet)
-
-def behavior_descriptors(seg: Segmentation, descriptors: List[str]) -> List[float]:
-    """Computes behavior descriptors dynamically based on selected keys."""
-    values = []
-    for name in descriptors:
-        func = globals().get(name)
-        if not callable(func):
-            raise ValueError(f"Invalid descriptor function: '{name}' not found.")
-        values.append(func(seg))
-    return values
-
-def bins(config: MapElitesConfig) -> List[float]:
-    """Discretizes the behavior descriptor into bins."""
-    # TODO: Better binning strategy
-    n_enclaves = config.n_enclaves
-    num_std = sum(1 for d in config.descriptors if "std" in d)
-    std_bin = max(2, int(round((config.batch_size * 3) ** (1 / num_std))))  # at least 2 per dim
-    bin_widths = []
-    for descriptor in config.descriptors:
-        if "std" in descriptor:
-            bin_widths.append(round((n_enclaves + 1) / std_bin, 2)) # Standard deviation descriptors
-        elif "nb" in descriptor or "distance" in descriptor:
-            bin_widths.append(1.0) # integer descriptors
-        else:
-            bin_widths.append(1.0)
-    return bin_widths
-
-def discretize(values: List[float], bin_widths: List[float]) -> List[float]:
-    """Discretizes a list of values into bins based on bin widths."""
-    assert len(values) == len(bin_widths), "Values and bin widths must have the same length"
-    return [round(d // b * b, 2) for d, b in zip(values, bin_widths)]
 
 
 # ========================================================================================================================
@@ -86,18 +19,15 @@ def mutate(
         neighbours_table: List[List[int]],
         distances_table: List[List[float]],
         mutation_list: List[str] = ["topology", "partition", "sensitivity"], 
-        level: int = 0
+        fine_tuning: bool = False
 ) -> Segmentation:
     """Mutates a segmentation by modifying its topology, device distribution, and sensitivities."""
-    if level == 0:   # More aggressive
-        eta = 10.0
-        n_mutations = 5
-    # elif level == 1: # Moderate
-    #     eta = 10.0
-    #     n_mutations = 1
-    else:            # Conservative fine-tuning
-        eta = 5.0 
+    if fine_tuning:   # Conservative fine-tuning
+        eta = 5.0
         n_mutations = 1
+    else:            # More aggressive
+        eta = 10.0 
+        n_mutations = 5
 
     # Mutate topology
     if "topology" in mutation_list:
@@ -165,6 +95,8 @@ def mutate_device_distribution(partition: List[List[Device]], n_mutations: int =
 
     # Choose source enclave randomly (must not be empty)
     non_empty = [i for i in enclave_indices if new_partition[i]]
+    if not non_empty:
+        return new_partition
     source_idx = random.choice(non_empty)
     source_devices = new_partition[source_idx]
     # Select devices to move (at most n_mutations)
@@ -204,39 +136,30 @@ def mutate_enclave_sensitivity(s_parent: float, eta: float = 5.0, s_upper: float
 #                                                   OPERATORS
 # ========================================================================================================================
 
-def topology_neighbours(graphs: List[List[Tuple[int, int]]], num_enclaves: int, K: int = 5) -> Tuple[List[Topology], List[List[int]], List[List[float]]]:
+def topology_neighbours(graphs: List[List[Tuple[int, int]]], num_enclaves: int, K: int = 5, verbose: bool = False) -> Tuple[List[Topology], List[List[int]], List[List[float]]]:
     """
-    Calculate KNN neighbor and distance tables for a list of graphs.
-
-    :param graphs: List of Graphillion graphs, where each graph is a list of (int, int) edges.
-    :param num_enclaves: Number of enclaves (nodes) in each topology.
-    :param devices: List of Device objects to assign to enclaves.
-    :param K: Number of nearest neighbors to compute for each topology.
-
-    :return: A tuple containing:
-        - topology_list: List of Topology objects initialized from the input graphs.
-        - neighbours_table: Top K nearest neighbors for each topology, 
-        - distance table: Their corresponding distances)
+    ### Equation 6 ###
+    Generate topology list and KNN-based neighbour tables for topology mutation.
     """
-    assert len(graphs) > 0, "No graphs provided for initialization"
-    topology_list: List[Topology] = [Topology(id=i, n_enclaves=num_enclaves, topology=g) for i, g in enumerate(graphs)]
-    adj_matrices = [topology.adj_matrix for topology in topology_list]
-    distances_table = []
+    topology_list = [Topology(id=i, n_enclaves=num_enclaves, topology=graph) for i, graph in enumerate(graphs)]
     neighbours_table = []
+    distances_table = []
 
-    for mat_i in adj_matrices:
+    for i, topology in enumerate(topology_list):
         distances = []
-        for j, mat_j in enumerate(adj_matrices):
-            dist = topology_distance(mat_i, mat_j)
+        for j, other_topology in enumerate(topology_list):
+            # Calculate distance between topologies using adjacency matrix
+            dist = topology_distance(topology.adj_matrix, other_topology.adj_matrix)
             distances.append((j, dist))
-
+        
         distances.sort(key=lambda x: x[1]) # Sort by distance
         top_k = distances[1 : K + 1]  # skip self (distance 0)
 
         neighbours_table.append([idx for idx, _ in top_k])
         distances_table.append([dist for _, dist in top_k])
 
-    print(f"Topology initialization done!")
+    if verbose:
+        print(f"Topology initialization done!")
     return topology_list, neighbours_table, distances_table
 
 def random_segmentation(topology: Topology, config: MapElitesConfig) -> Segmentation:
@@ -248,8 +171,7 @@ def random_segmentation(topology: Topology, config: MapElitesConfig) -> Segmenta
     return Segmentation(
         topology=topology,
         partition=partition,
-        sensitivities=config.sensitivities,
-        level=config.level
+        sensitivities=config.sensitivities
     )
 
 def fitness(config: MapElitesConfig, seg: Segmentation, infected_seg: Optional[Segmentation] = None) -> float:
@@ -261,21 +183,31 @@ def fitness(config: MapElitesConfig, seg: Segmentation, infected_seg: Optional[S
 
     total_loss = 0.0
     for metric_name, weight in config.evaluation_metrics.items():
-        try:
-            # Lookup the function by name
-            metric_func = globals()[metric_name]
-        except KeyError:
-            raise ValueError(f"Unknown evaluation metric: '{metric_name}'")
-
-        # Check if it needs both seg and infected_seg
-        if metric_name == "topology_distance" and is_adaptation:
-            loss = metric_func(seg.topology.adj_matrix, infected_seg.topology.adj_matrix)
-        elif metric_name == "security_loss":
-            simulations = [Simulation(seg, config, is_adaptation) for _ in range(config.n_simulations)]
-            loss = metric_func(simulations)
+        # Get cached metric if it exists
+        if seg.has_cached_metric(metric_name):
+            loss = seg.metrics_cache[metric_name]
+        # Else, calculate the metric
         else:
-            loss = metric_func(seg)
+            try:
+                # Lookup the function by name
+                metric_func = globals()[metric_name]
+            except KeyError:
+                raise ValueError(f"Unknown evaluation metric: '{metric_name}'")
 
+            # Check if it needs both seg and infected_seg
+            if metric_name == "topology_distance" and is_adaptation:
+                loss = metric_func(seg.topology.adj_matrix, infected_seg.topology.adj_matrix)
+            elif metric_name == "security_loss":
+                simulations = [Simulation(seg, config, is_adaptation, verbose=config.verbose) for _ in range(config.n_simulations)]
+                loss = metric_func(simulations)
+            else:
+                loss = metric_func(seg)
+            # Add the metric to the cache
+            seg.add_metric_cache(metric_name, loss)
+
+        if config.verbose:
+            print(f"Metric {metric_name} loss: {loss}")
+        print(f"Metric {metric_name} loss: {round(loss, 2)}, weight: {round(weight, 2)}, total_loss: {round(weight * loss, 2)}")
         total_loss += weight * loss
 
     return - total_loss
@@ -286,7 +218,8 @@ def map_elites(topology_list: List[Topology],
                neighbours_table: List[List[int]], 
                distances_table: List[List[float]], 
                config: MapElitesConfig,
-               infected_segmentation: Optional[Segmentation] = None
+               infected_segmentation: Optional[Segmentation] = None,
+               verbose: bool = False
                ) -> Tuple[Tuple[Segmentation, float], Dict[Tuple[float, ...], Tuple[Segmentation, float]]]:
     """
     MAP-Elites evolutionary algorithm for exploring segmentation space.
@@ -297,10 +230,11 @@ def map_elites(topology_list: List[Topology],
     bin_widths = bins(config)
 
     # Initialization phase
-    print(f"\n++++++++++++++++++ Starting MAP-Elites with {config.generations} generations ++++++++++++++++++")
+    if verbose:
+        print(f"\n++++++++++++++++++ Starting MAP-Elites with {config.generations} generations ++++++++++++++++++")
     for _ in range(config.init_batch):
         if infected_segmentation:
-            seg = mutate(infected_segmentation, topology_list, neighbours_table, distances_table, level=config.level)
+            seg = mutate(infected_segmentation, topology_list, neighbours_table, distances_table, fine_tuning=False)
         else:
             seg = random_segmentation(random.choice(topology_list), config)
         desc = behavior_descriptors(seg, config.descriptors)
@@ -311,18 +245,20 @@ def map_elites(topology_list: List[Topology],
 
     # Evolutionary loop
     for g in range(config.generations):
-        print(f"\n++++++++++++++++++ Generation [{g + 1}/{config.generations}] ++++++++++++++++++")
+        if verbose:
+            print(f"\n++++++++++++++++++ Generation [{g + 1}/{config.generations}] ++++++++++++++++++")
         parents = random.sample(list(grid.values()), min(len(grid), config.batch_size))
+        fine_tuning = True if g > config.generations * 0.8 else False # Fine-tuning only after 80% of the generations
         
         for parent_seg, _ in parents:
-            # mutation_type = random.choice(["topology", "partition", "sensitivity"])
-            child = mutate(parent_seg, topology_list, neighbours_table, distances_table, level=config.level)
+            child = mutate(parent_seg, topology_list, neighbours_table, distances_table, fine_tuning=fine_tuning)
             desc = behavior_descriptors(child, config.descriptors)
             key = tuple(discretize(desc, bin_widths))
             f = fitness(config, child, infected_segmentation)
 
             if key not in grid or f > grid[key][1]:
-                print(f"Updated bin {key} with fitness {f:.3f}")
+                if verbose:
+                    print(f"Updated bin {key} with fitness {f:.3f}")
                 grid[key] = (child, f)
 
     best_seg = max(grid.values(), key=lambda x: x[1])
@@ -332,45 +268,42 @@ def map_elites(topology_list: List[Topology],
 def compositional_map_elites(
     comp_config: CompositionalConfig,
     infected_node: Optional[SegmentationNode] = None,
-    loss_threshold: float = 0.0
+    loss_threshold: float = 0.0,
+    verbose: bool = False
 ) -> SegmentationNode:
     """
-    Runs a compositional MAP-Elites algorithm across multiple trust levels and refinement levels.
+    Runs a compositional MAP-Elites algorithm across multiple refinement levels.
     If infected_node is provided, performs adaptation starting from the deepest level containing the compromised part.
 
-    :param comp_config: CompositionalConfig object containing trust levels and their configurations.
+    :param comp_config: CompositionalConfig object containing hierarchical configurations.
     :param infected_node: Existing (possibly compromised) SegmentationNode to adapt from.
     :param loss_threshold: Loss threshold to determine when adaptation is sufficient.
     :return: Final refined SegmentationNode from the last level.
     """
     # If no adaptation, run as before
     if not infected_node:
-        n_enclaves = len(comp_config.configs) + 1
-        root_seg = Segmentation(
-            topology=Topology(id=0, n_enclaves=n_enclaves, topology=[(i, i+1) for i in range(n_enclaves - 1)]),
-            partition=[[]]+[level_configs[0].devices for level_configs in comp_config.configs.values()],
-            sensitivities=[0.5] * n_enclaves
-        )
-        root_node = SegmentationNode(root_seg, level=0)
-        for i, (trust_level, level_configs) in enumerate(comp_config.configs.items()):
-            print(f"\n++++++++++++++++++ Processing {trust_level.upper()} Trust Level ++++++++++++++++++")
-            best_node = recursive_compositional_map_elites_node(level_configs, comp_config.devices[trust_level])
-            if best_node:
-                best_node.trust_level = trust_level
-                root_node.add_child(i, best_node)
-        return root_node
+        # Create a simple hierarchical structure without trust levels
+        best_node = recursive_compositional_map_elites_node(comp_config.configs, comp_config.devices, verbose)
+        if best_node:
+            return best_node
+        else:
+            # Fallback: create a simple root node
+            root_seg = Segmentation(
+                topology=Topology(id=0, n_enclaves=2, topology=[(0, 1)]),
+                partition=[[], comp_config.devices],
+                sensitivities=[0.0, 0.5]
+            )
+            return SegmentationNode(root_seg, level=0)
 
     # ADAPTATION MODE
-    def get_deepest_compromised_path(seg_node: SegmentationNode, path: List[int] = [], trust_level: Optional[str] = None):
+    # TODO: Check config
+    def get_deepest_compromised_path(seg_node: SegmentationNode, path: List[str | int] = []):
         """
         Recursively find the path to the smallest segmentation node that contains all compromised devices.
-        Returns (path, node, trust_level) where node is the smallest such SegmentationNode.
+        Returns (path, node) where node is the smallest such SegmentationNode.
         """
-        if trust_level is None and seg_node.trust_level:
-            trust_level = seg_node.trust_level
-        
         if not seg_node.children:
-            return path, seg_node, trust_level
+            return path, seg_node
 
         num_compromised_here = len(seg_node.seg.all_compromised_devices())
         num_compromised_subtree = {idx: len(child.seg.all_compromised_devices()) for idx, child in seg_node.children.items()}
@@ -378,48 +311,52 @@ def compositional_map_elites(
         # Check if any child contains all compromised devices in the subtree
         for idx, child in num_compromised_subtree.items():
             if child == num_compromised_here:
-                return get_deepest_compromised_path(seg_node.children[idx], path + [idx], trust_level)
+                return get_deepest_compromised_path(seg_node.children[idx], path + [idx])
 
-        return path, seg_node, trust_level
+        return path, seg_node
     
-    path, current_node, trust_level = get_deepest_compromised_path(infected_node)
+    path, current_node = get_deepest_compromised_path(infected_node)
     # For testing
     assert path, "No path found"
-    assert trust_level, "No trust level found"
-    configs = comp_config.configs[trust_level][:len(path)]
-    if not path:
-        path = []
-    print(f"\nAdaptation: Starting from path {path}")
-
+    
+    # Get configs for the path (simplified for non-trust-level structure)
+    configs = comp_config.configs[:len(path)]
     while current_node and current_node.parent is not None:
         # Run MAP-Elites adaptation at this level
         config = configs[-1]
         devices = current_node.seg.all_devices()
-        print(f"\nAdaptation: Running MAP-Elites at level {config.level} ({path})")
-        adp_node = recursive_compositional_map_elites_node(configs, devices)
+        if verbose:
+            print(f"\nAdaptation: Running MAP-Elites at level {config.level} ({path})")
+        adp_node = recursive_compositional_map_elites_node(configs, devices, verbose)
         if adp_node is not None:
             # Calculate the loss of the entire segmentation after adaptation
-            new_node = copy.deepcopy(current_node)
-            node = new_node
-            for idx in path[:-1]:
-                node = node.children[idx]
-            node.children[path[-1]] = adp_node # Update node
-            loss = fitness(comp_config.configs[trust_level][0], new_node.seg, infected_node.seg)
-            print(f"Adaptation: Loss at path {path} is {loss}")
+            new_node = copy.deepcopy(infected_node)
+            new_node.update_by_path(path, adp_node)
+            loss = fitness(config, new_node.seg, infected_node.seg)
+            if verbose:
+                print(f"Adaptation: Loss at path {path} is {loss}")
             if loss <= loss_threshold:
-                print(f"Adaptation: Acceptable loss {loss} <= {loss_threshold} at path {path}")
-                break
+                if verbose:
+                    print(f"Adaptation: Acceptable loss {loss} <= {loss_threshold} at path {path}")
+                return new_node
         else:
-            print(f"Adaptation failed at path {path}: adp_node is None")
+            if verbose:
+                print(f"Adaptation failed at path {path}: adp_node is None")
             return infected_node
+
+        # Update current node and path
+        current_node = new_node
+        path = path[:-1]
             
-    print(f"No adaptation found within loss threshold {loss_threshold} (current loss: {loss}). Need urgent fix for compromise!!")
+    if verbose:
+        print(f"No adaptation found within loss threshold {loss_threshold} (current loss: {loss}). Need urgent fix for compromise!!")
     return current_node
 
 
 def recursive_compositional_map_elites_node(
     configs: List[MapElitesConfig],
-    devices: List[Device]
+    devices: List[Device],
+    verbose: bool = False
 ) -> Optional[SegmentationNode]:
     """
     Recursively runs MAP-Elites for each level, partitioning devices at each step.
@@ -431,23 +368,22 @@ def recursive_compositional_map_elites_node(
     config = configs[0]
     config.devices = devices
 
-    topology_list, neighbours_table, distances_table = topology_neighbours(config.universe, config.n_enclaves)
+    topology_list, neighbours_table, distances_table = topology_neighbours(config.universe, config.n_enclaves, verbose=config.verbose)
     (best_seg, loss), grid = map_elites(
         topology_list,
         neighbours_table,
         distances_table,
-        config
+        config,
+        verbose=config.verbose
     )
-    node = SegmentationNode(best_seg, level=config.level)
+    node = SegmentationNode(best_seg, level=config.level, config=config)
 
     if len(configs) > 1:
         next_configs = configs[1:]
         for i, enclave in enumerate(best_seg.enclaves):
             if i == 0:
                 continue  # skip Internet
-            if not enclave.devices:
-                continue
-            child_node = recursive_compositional_map_elites_node(next_configs, enclave.devices)
+            child_node = recursive_compositional_map_elites_node(next_configs, enclave.devices, verbose)
             if child_node:
                 node.add_child(i, child_node)
 

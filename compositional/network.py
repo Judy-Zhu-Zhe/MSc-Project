@@ -3,6 +3,12 @@ from collections import deque
 
 from typing import List, Tuple, Dict, Optional
 
+# Import for config support
+try:
+    from config import MapElitesConfig
+except ImportError:
+    MapElitesConfig = None  # Type hint fallback
+
 # ========================================================================================================================
 #                                                      DEVICE
 # ========================================================================================================================
@@ -16,9 +22,7 @@ class Device:
             self.compromise_value = profile["compromise_value"]
             self.information_value = profile["information_value"]
             self.prior_information_value = 0.0
-            self.internet_required = profile["internet_required"]
             self.internet_sensitive = profile["internet_sensitive"]
-            self.trust_level = profile["trust_level"]
         except KeyError as e:
             raise ValueError(f"Missing required profile key: {e}")
 
@@ -41,12 +45,10 @@ class Device:
             "compromise_value": self.compromise_value,
             "information_value": self.information_value,
             "prior_information_value": self.prior_information_value,
-            "internet_required": self.internet_required,
             "internet_sensitive": self.internet_sensitive,
             "infected": self.infected,
             "turned_down": self.turned_down,
-            "has_been_infected": self.has_been_infected,
-            "trust_level": self.trust_level
+            "has_been_infected": self.has_been_infected
         }
 
     @staticmethod
@@ -58,9 +60,7 @@ class Device:
                 "vulnerability": data["vulnerability"],
                 "compromise_value": data["compromise_value"],
                 "information_value": data["information_value"],
-                "internet_required": data["internet_required"],
-                "internet_sensitive": data["internet_sensitive"],
-                "trust_level": data["trust_level"]
+                "internet_sensitive": data["internet_sensitive"]
             }
         )
         device.prior_information_value = data.get("prior_information_value", 0.0)
@@ -157,7 +157,7 @@ class Internet(Enclave):
 # ========================================================================================================================
 
 class Topology:
-    def __init__(self, id: int, n_enclaves: int = 1, topology: List[Tuple[int, int]] = []):
+    def __init__(self, id: int, n_enclaves: int = 5, topology: List[Tuple[int, int]] = []):
         """
         :param id: Identifier for the topology
         :param num_enclaves: Number of enclaves in the network
@@ -232,8 +232,7 @@ class Segmentation:
     def __init__(self, 
                  topology: Topology, 
                  partition: List[List[Device]] = [], 
-                 sensitivities: List[float] = [],
-                 level: int = 0):
+                 sensitivities: List[float] = []):
         """
         :param topology: The topology of the network
         :param partition: The partition of the network (list of devices in each enclave)
@@ -242,6 +241,7 @@ class Segmentation:
         self.topology = topology
         self.internet = Internet()
         self.enclaves: List[Enclave] = [self.internet]
+        self.metrics_cache: Dict[str, float] = {}  # Cache for calculated metric values
         if topology:
             assert topology.n_enclaves == len(partition) == len(sensitivities), f"Solutions must have the same length. {topology.n_enclaves} != {len(partition)} != {len(sensitivities)}"
             self.create_enclaves(partition, sensitivities)
@@ -291,7 +291,34 @@ class Segmentation:
             infected_devices = random.sample(all_devices, n)
 
         for device in infected_devices:
+            print(f"Infecting {device.name}")
             device.infect()
+        
+        # Clear cache when devices are infected (affects security metrics)
+        self.clear_cache_on_infection()
+    
+    def add_metric_cache(self, metric_name: str, value: float):
+        """Add a metric to the cache."""
+        self.metrics_cache[metric_name] = value
+
+    def has_cached_metric(self, metric_name: str) -> bool:
+        """Check if a metric is cached."""
+        return metric_name in self.metrics_cache
+
+    def clear_metrics_cache(self):
+        """Clear all cached metric values. Call this when topology or partition changes."""
+        self.metrics_cache.clear()
+    
+    def invalidate_metric(self, metric_name: str):
+        """Remove a specific metric from cache."""
+        self.metrics_cache.pop(metric_name, None)
+    
+    def clear_cache_on_infection(self):
+        """Clear cache when devices are infected (affects security metrics)."""
+        # Clear security-related metrics
+        security_metrics = ["security_loss", "attack_surface_exposure", "trust_separation_score"]
+        for metric in security_metrics:
+            self.invalidate_metric(metric)
 
     def num_enclaves(self) -> int:
         """Returns the number of enclaves in the segmentation."""
@@ -333,7 +360,8 @@ class Segmentation:
         return {
             "topology": self.topology.to_dict(),
             "partition": [[d.to_dict() for d in enclave.devices] for enclave in self.enclaves],
-            "sensitivities": [enclave.sensitivity for enclave in self.enclaves]
+            "sensitivities": [enclave.sensitivity for enclave in self.enclaves],
+            "metrics_cache": self.metrics_cache
         }
     
     @staticmethod
@@ -343,57 +371,172 @@ class Segmentation:
             partition=[[Device.from_dict(d) for d in enclave] for enclave in data["partition"]],
             sensitivities=data["sensitivities"],
         )
+        # Restore metrics cache if it exists
+        if "metrics_cache" in data:
+            segmentation.metrics_cache = data["metrics_cache"]
         return segmentation
 
     def __repr__(self):
         return f"<Network Segmentation with {self.num_enclaves()} enclaves and device partition : {[len(p) for p in self.partition()]}>"
 
 class SegmentationNode:
-    def __init__(self, seg: Segmentation, level: int = 0, parent=None, trust_level: Optional[str] = None):
+    def __init__(self, seg: Segmentation, level: int, config: Optional['MapElitesConfig'] = None, parent: Optional['SegmentationNode'] = None):
         self.seg = seg
         self.level = level
+        self.config = config  # Store the configuration for this node
         self.parent: Optional[SegmentationNode] = parent
         self.children: Dict[int, SegmentationNode] = {}  # Enclave index -> child node
-        self.trust_level: Optional[str] = trust_level
 
     def add_child(self, enclave_id: int, child_seg: 'SegmentationNode'):
         self.children[enclave_id] = child_seg
         child_seg.parent = self
+
+    def update_by_path(self, path: List[int], new_node: 'SegmentationNode'):
+        """Update the segmentation by the path of enclave indices."""
+        # Make sure metrics cache of new node is clear
+        new_node.seg.clear_metrics_cache()
+        
+        node = self
+        for idx in path[:-1]:
+            node = node.children[idx]
+        node.children[path[-1]] = new_node # Update node
     
-    def print_details(self, indent: int = 0):
+    def propagate_infection_to_children(self):
+        """
+        Propagate infection information from this node's segmentation to all child segmentations.
+        This ensures that when a device is infected at a higher level, it's also marked as infected
+        in all child segmentations that contain the same device.
+        """
+        if not self.children:
+            return
+            
+        # Get all infected devices in this segmentation
+        infected_devices = self.seg.all_compromised_devices()
+        
+        # For each infected device, find all child segmentations that contain it
+        # and mark the corresponding device as infected
+        for infected_device in infected_devices:
+            for child_node in self.children.values():
+                # Find the same device in the child segmentation
+                for child_enclave in child_node.seg.enclaves:
+                    for child_device in child_enclave.devices:
+                        if child_device.name == infected_device.name:
+                            child_device.infected = infected_device.infected
+                            child_device.has_been_infected = infected_device.has_been_infected
+                            print(f"Propagated infection from {infected_device.name} to child segmentation")
+                
+                # Recursively propagate to grandchildren
+                child_node.propagate_infection_to_children()
+    
+    def infect_devices_and_propagate(self, n: int = 1, devices: Optional[Dict[str, int]] = None):
+        """
+        Infects devices in this node's segmentation and propagates the infection to all child segmentations.
+        
+        :param n: Number of devices to infect
+        :param devices: Optional dictionary of device types and counts to infect specific devices
+        """
+        # Infect devices in this segmentation
+        self.seg.randomly_infect(n, devices)
+        
+        # Propagate infection to children
+        self.propagate_infection_to_children()
+
+    def print_details(self, indent: int = 0, trust_level: Optional[str] = None):
         prefix = '  ' * indent
-        trust_info = f"({self.trust_level.upper()} Trust)" if self.trust_level else ""
+        seg_info = f"{trust_level.upper()} TRUST ZONE" if trust_level else f"Segmentation Level {self.level}"
         enclave_info = f"{self.seg.num_enclaves()} Enclaves"
         partition_info = f"{self.seg.num_device_partition()}"
         topology_info = f"Topology: {self.seg.topology.edges()}"
-        print(f"{prefix}{f"Segmentation Level {self.level}"}{trust_info}, {enclave_info}: {partition_info}, {topology_info}")
+        print(f"{prefix}{seg_info}, {enclave_info}: {partition_info}, {topology_info}")
         if not self.children:
-            for i, enclave in enumerate(self.seg.enclaves):
-                if i == 0:
-                    print(f"{prefix}  Internet Enclave 0")
-                    continue
-                print(f"{prefix}  Enclave: {enclave}")
+            for enclave in self.seg.enclaves:
+                print(f"{prefix}  {enclave}")
                 for device in enclave.devices:
-                    print(f"{prefix}    - Device: {device}")
+                    print(f"{prefix}    - {device}")
             print()
         else:
-            for idx, child in self.children.items():
+            for child in self.children.values():
                 child.print_details(indent=indent+1)
 
     def to_dict(self):
         return {
             "seg": self.seg.to_dict(),
             "level": self.level,
+            "config": self.config.to_dict() if self.config else None,
             "children": {idx: child.to_dict() for idx, child in self.children.items()},
-            "trust_level": self.trust_level
         }
     
     @staticmethod
     def from_dict(data):
         seg = Segmentation.from_dict(data["seg"])
-        node = SegmentationNode(seg, data["level"], data["trust_level"])
+        config = None
+        if data.get("config"):
+            from config import MapElitesConfig
+            config = MapElitesConfig.from_dict(data["config"])
+        
+        node = SegmentationNode(seg, data["level"], config)
         for idx, child_data in data["children"].items():
             child_node = SegmentationNode.from_dict(child_data)
             node.add_child(int(idx), child_node)
         return node
 
+    def __repr__(self):
+        return f"<SegmentationNode level {self.level}: {self.seg.num_enclaves()} enclaves, {self.seg.num_devices()} devices>"
+
+    def get_config_param(self, param_name: str, default=None):
+        """Get a configuration parameter, with fallback to default if config is not available."""
+        if self.config and hasattr(self.config, param_name):
+            return getattr(self.config, param_name)
+        return default
+    
+    def validate_config(self):
+        """Validate that this node has a configuration."""
+        if not self.config:
+            raise ValueError(f"SegmentationNode at level {self.level} has no configuration")
+        return True
+    
+    def get_simulation_params(self) -> Dict[str, any]:
+        """Get simulation parameters from config."""
+        if not self.config:
+            return {}
+        
+        return {
+            'total_sim_time': getattr(self.config, 'total_sim_time', 24),
+            'time_in_enclaves': getattr(self.config, 'time_in_enclaves', 6),
+            'c_appetite': getattr(self.config, 'c_appetite', 0.9),
+            'i_appetite': getattr(self.config, 'i_appetite', 0.4),
+            'r_reconnaissance': getattr(self.config, 'r_reconnaissance', 0.7),
+            'p_update': getattr(self.config, 'p_update', 1/90),
+        }
+
+class Root(SegmentationNode):
+    def __init__(self, seg: Segmentation, config: Optional['MapElitesConfig'] = None):
+        super().__init__(seg, level=0, config=config, parent=None)
+        self.children: Dict[int, SegmentationNode] = {}  # Enclave index -> child node
+
+    def add_child(self, enclave_id: int, child_seg: 'SegmentationNode'):
+        """Add child using enclave index."""
+        self.children[enclave_id] = child_seg
+        child_seg.parent = self
+    
+    def get_child_by_enclave(self, enclave_id: int) -> Optional['SegmentationNode']:
+        """Get child by enclave index."""
+        return self.children.get(enclave_id)
+
+    def infect_devices_and_propagate(self, n: int = 1, devices: Optional[Dict[str, int]] = None):
+        """
+        Infects devices in this root node's segmentation and propagates the infection to all child segmentations.
+        
+        :param n: Number of devices to infect
+        :param devices: Optional dictionary of device types and counts to infect specific devices
+        """
+        # Infect devices in this segmentation
+        self.seg.randomly_infect(n, devices)
+        
+        # Propagate infection to children
+        self.propagate_infection_to_children()
+
+    def print_details(self):
+        for enclave_id, child in self.children.items():
+            child.print_details(indent=0)
+        

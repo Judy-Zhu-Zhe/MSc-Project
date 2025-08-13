@@ -1,0 +1,20 @@
+name: "Compositional_Example"
+
+configs:
+  - level: 0
+    n_enclaves: 3
+    constraints:
+      max_isps: 2
+      max_degree: 3
+    sensitivities: [0.2, 0.5, 0.8]
+    descriptors: ["std_devices", "nb_high_deg_nodes"]
+    evaluation_metrics:
+      attack_surface_exposure: 2.0
+      security_loss: 1.0
+      performance_loss: 0.5
+      resilience_loss: 0.5
+    generations: 1
+    init_batch: 1
+    batch_size: 100
+    time_in_enclaves: 6
+    n_simulations: 30

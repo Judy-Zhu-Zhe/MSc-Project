@@ -6,10 +6,11 @@ from network import Device, Enclave, Segmentation
 from config import MapElitesConfig
 
 class Simulation:
-    def __init__(self, seg: Segmentation, config: MapElitesConfig, is_adaptation: bool) -> None:
+    def __init__(self, seg: Segmentation, config: MapElitesConfig, is_adaptation: bool, verbose: bool = False) -> None:
         """
         :param seg: The initialized network segmentation
         :param config: The configuration for the simulation
+        :param verbose: Whether to print verbose output
         """
         self.segmentation = copy.deepcopy(seg) # Copy to avoid modifying the original segmentation
         self.T = config.total_sim_time
@@ -20,6 +21,7 @@ class Simulation:
         self.r_reconnaissance = config.r_reconnaissance
         self.p_update = config.p_update
         self.cleansing_loss = 0.0
+        self.verbose = verbose
         if is_adaptation:
             self.simulate_adaption()
         else:
@@ -27,16 +29,18 @@ class Simulation:
 
     def simulate_network(self):
         """Simulate the attack spread in the network (from the Internet)."""
-        print("\n==================================================================")
-        print("================== Simulating network attack... ==================")
-        print("==================================================================")
+        if self.verbose:
+            print("\n==================================================================")
+            print("================== Simulating network attack... ==================")
+            print("==================================================================")
         return self.network_spread()
     
     def simulate_adaption(self):
         """Simulate the attack spread from internally infected devices (adaption)."""
-        print("\n==================================================================")
-        print("================= Simulating adaption attack... ==================")
-        print("==================================================================")
+        if self.verbose:
+            print("\n==================================================================")
+            print("================= Simulating adaption attack... ==================")
+            print("==================================================================")
         return self.internet_spread()
 
     # ========================================================================================================================
@@ -51,7 +55,8 @@ class Simulation:
         :param device: The device to compromise
         :return: Ture if the device was compromised.
         """
-        print(f"        [{device.name}] Device compromised.")
+        if self.verbose:
+            print(f"        [{device.name}] Device compromised.")
         device.infect()
         # If the attacker decides to turn down the device
         compromise = random.random()
@@ -67,7 +72,8 @@ class Simulation:
         :param time: The time to spend in the enclave.
         :param infected_device: The device that is already infected
         """
-        print(f"        [Enclave {enclave.id}] compromise spreading from {infected_device.name if infected_device else "Internet"}...")
+        if self.verbose:
+            print(f"        [Enclave {enclave.id}] compromise spreading from {infected_device.name if infected_device else "Internet"}...")
         alert = 0
         enclave.compromised = True
         
@@ -80,7 +86,8 @@ class Simulation:
         if is_turned_down:
             alert += 1
             if self.cleansing_detection(enclave, alert):
-                print("     -- Enclave cleansing triggered.")
+                if self.verbose:
+                    print("     -- Enclave cleansing triggered.")
                 self.cleansing_loss += self.cleansing_loss_with_investigation(enclave)
                 self.enclave_cleansing(enclave)
         
@@ -95,12 +102,14 @@ class Simulation:
                     if is_turned_down:
                         test_alert = True
                 else:
-                    print(f"        [{device.name}] Infection detected and blocked.")
+                    if self.verbose:
+                        print(f"        [{device.name}] Infection detected and blocked.")
                     test_alert = True
                 if test_alert:
                     alert += 1
                     if self.cleansing_detection(enclave, alert):
-                        print("     [!] Enclave cleansing triggered.")
+                        if self.verbose:
+                            print("     [!] Enclave cleansing triggered.")
                         self.cleansing_loss += self.cleansing_loss_with_investigation(enclave)
                         self.enclave_cleansing(enclave)
     
@@ -146,33 +155,40 @@ class Simulation:
         compromised_enclave_idx: List[int] = [e.id for e in self.segmentation.enclaves if e.compromised]
         
         while self.spent_time <= self.T:
-            print(f"Time: [{self.spent_time}/{self.T}]")
+            if self.verbose:
+                print(f"Time: [{self.spent_time}/{self.T}]")
             # For each compromised enclave, infect its neighbours
             for e in compromised_enclave_idx[:]:  # Use a copy to avoid modification during iteration
                 for n in self.segmentation.topology.enclave_neighbours(e):
                     next = self.segmentation.enclaves[n]
                     if not next.compromised:
                         infect = random.random()
-                        print(f"    Infecting [Enclave {next.id}] (v={next.vulnerability():.2f}) with probability {infect:.2f}.")
+                        if self.verbose:
+                            print(f"    Infecting [Enclave {next.id}] (v={next.vulnerability():.2f}) with probability {infect:.2f}.")
                         
                         if infect <= next.vulnerability():
-                            print(f"    -- [√] Infection successful.")
+                            if self.verbose:
+                                print(f"    -- [√] Infection successful.")
                             self.enclave_spread(next, self.time_in_enclaves)
                             if next.compromised and next.id not in compromised_enclave_idx:
                                 compromised_enclave_idx.append(next.id)
                             self.spent_time += self.time_in_enclaves
                             if self.spent_time >= self.T:
-                                print(f"Time limit reached.")
+                                if self.verbose:
+                                    print(f"Time limit reached.")
                                 return
                         else:
-                            print(f"    -- [x] Infection detected and blocked.")
+                            if self.verbose:
+                                print(f"    -- [x] Infection detected and blocked.")
             
             # Attempt regular update at each timestep
             if self.regular_update():
-                print("     [!] Regular update triggered and cleansing executed.")
+                if self.verbose:
+                    print("     [!] Regular update triggered and cleansing executed.")
             self.spent_time += 1
         
-        print(f"Time limit reached.")
+        if self.verbose:
+            print(f"Time limit reached.")
 
     
     def internet_spread(self):
@@ -198,7 +214,8 @@ class Simulation:
 
         :return: True if the device is successfully infected, False if infection is detected or blocked.
         """
-        print(f"        Attempting infection on [{device.name}] (vuln={device.vulnerability:.2f})")
+        if self.verbose:
+            print(f"        Attempting infection on [{device.name}] (vuln={device.vulnerability:.2f})")
         return random.random() <= device.vulnerability
     
     def enclave_cleansing(self, enclave: Enclave):
@@ -206,7 +223,8 @@ class Simulation:
         enclave.compromised = False
         for device in enclave.all_devices():
             device.reset()
-        print(f"        [Enclave {enclave.id}] regular cleansed. Threats removed.")
+        if self.verbose:
+            print(f"        [Enclave {enclave.id}] regular cleansed. Threats removed.")
     
     def cleansing_loss_with_investigation(self, enclave: Enclave) -> int:
         """Trigger cleansing with investigation 

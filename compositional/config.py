@@ -107,55 +107,101 @@ class MapElitesConfig:
     r_reconnaissance: float = R_RECONNAISSANCE
     c_appetite: float = C_APPETITE
     i_appetite: float = I_APPETITE
+    verbose: bool = False
+
+    def to_dict(self) -> dict:
+        """Convert config to dictionary for serialization."""
+        return {
+            "name": self.name,
+            "level": self.level,
+            "devices": [d.to_dict() for d in self.devices],
+            "universe": self.universe,
+            "n_enclaves": self.n_enclaves,
+            "init_batch": self.init_batch,
+            "batch_size": self.batch_size,
+            "generations": self.generations,
+            "sensitivities": self.sensitivities,
+            "n_simulations": self.n_simulations,
+            "total_sim_time": self.total_sim_time,
+            "time_in_enclaves": self.time_in_enclaves,
+            "descriptors": self.descriptors,
+            "evaluation_metrics": self.evaluation_metrics,
+            "p_update": self.p_update,
+            "r_reconnaissance": self.r_reconnaissance,
+            "c_appetite": self.c_appetite,
+            "i_appetite": self.i_appetite,
+            "verbose": self.verbose
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> 'MapElitesConfig':
+        """Create config from dictionary."""
+        # Convert device dictionaries back to Device objects
+        devices = [Device.from_dict(d) for d in data.get("devices", [])]
+        
+        # Create config without devices first
+        config_data = dict(data)
+        config_data["devices"] = devices
+        
+        return cls(**config_data)
 
 @dataclass
 class CompositionalConfig:
     name: str
     network_name: str
-    configs: Dict[str, List[MapElitesConfig]]
-    devices: Dict[str, List[Device]]
+    devices: List[Device]
+    configs: List[MapElitesConfig]
 
 class ConfigManager:
     """Manages configuration loading and handling for both MapElites and Compositional configs."""
     
-    def __init__(self, device_profile_path, network_path: str, config_path: str):
-        self.devices = {}
+    def __init__(self, device_profile_path, network_path: str, config_path: str, verbose: bool = False):
         self._load_device_profiles(device_profile_path)
         self._load_network(network_path)
         self._load_config(config_path)
+        self.set_verbose(verbose)
         self.filename = self.generate_filename()
+    
+    def set_verbose(self, verbose: bool):
+        """Set verbose flag for all configs."""
+        for config in self.config.configs:
+            config.verbose = verbose
     
     def _load_device_profiles(self, device_profile_path):
         """Load device profiles from YAML file."""
-        with open(device_profile_path, "r") as f:
+        with open(device_profile_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
         self.device_profiles = data["device_profiles"]
     
     def _load_network(self, network_path: str):
         """Load the network from a YAML file."""
-        with open(network_path, "r") as f:
+        with open(network_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
         self.network_name = data["name"]
-        self.network = generate_devices(data["devices"], self.device_profiles)
+        self.devices = generate_devices(data["devices"], self.device_profiles)
 
     def _load_config(self, yaml_path: str):
         """Load a compositional configuration from a YAML file."""
-        with open(yaml_path, "r") as f:
+        with open(yaml_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
         name = data.get("name", "Default")
         data.pop("name")
 
-        configs_dict = {}
-        for trust_level, configs in data.items():
-            self.devices[trust_level] = [device for device in self.network if device.trust_level == trust_level]
-            configs_dict[trust_level] = [self.parse_config(config, self.devices[trust_level]) for config in configs]
+        # Parse configs into MapElitesConfig objects
+        configs = []
+        for config_dict in data["configs"]:
+            configs.append(self.parse_config(config_dict, self.devices))
 
-        self.config = CompositionalConfig(name, self.network_name, configs_dict, self.devices)
+        self.config = CompositionalConfig(name, self.network_name, self.devices, configs)
 
     def parse_config(self, config: Dict, devices: Optional[List[Device]] = None) -> MapElitesConfig:
         """Parse a configuration dictionary into a MapElitesConfig object."""
         config = dict(config)  # Copy so we can modify
+
+        # Add Internet enclave
+        config["n_enclaves"] += 1
+        config["sensitivities"] = [0.0] + config["sensitivities"]
 
         # Generate universe if constraints provided
         n_enclaves = config.get("n_enclaves", 5)
@@ -175,19 +221,18 @@ class ConfigManager:
         return f"{self.config.name}_{self.config.network_name}_{timestamp}"
 
     def update_config_for_adaptation(self, config: MapElitesConfig) -> MapElitesConfig:
-        # TODO: for adaptation
         """Update the configuration for adaptation."""
         config.name += "_adaptation"
         return config
     
     def save_results(self, seg_node: SegmentationNode, grid: Optional[Dict] = None) -> str:
         """Save the segmentation and grid results to JSON files."""
-        dir_path = f"compositional/segmentations/{self.config.name}"
+        dir_path = f"segmentations/{self.config.name}"
         os.makedirs(dir_path, exist_ok=True) # Ensure directory exists
 
         # Save segmentation
         seg_path = f"{dir_path}/seg_{self.filename}.json"
-        with open(seg_path, "w") as f:
+        with open(seg_path, "w", encoding="utf-8") as f:
             json.dump(seg_node.to_dict(), f, indent=2)
         print(f"Saved segmentation to {seg_path}")
 
@@ -201,15 +246,15 @@ class ConfigManager:
                 for key, (seg_node, fitness) in grid.items()
             }
             grid_path = f"{dir_path}/grid_{self.filename}.json"
-            with open(grid_path, "w") as f:
+            with open(grid_path, "w", encoding="utf-8") as f:
                 json.dump(serializable_grid, f, indent=2)
             print(f"Saved grid to {grid_path}")
 
         return self.filename
     
-    def load_segmentation_node(self, filename: str) -> SegmentationNode:
-        """Load a segmentation from a JSON file."""
-        with open(filename, "r") as f:
-            data = json.load(f)
-        return SegmentationNode.from_dict(data)
+def load_segmentation_node(filename: str) -> SegmentationNode:
+    """Load a segmentation from a JSON file."""
+    with open(filename, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return SegmentationNode.from_dict(data)
 

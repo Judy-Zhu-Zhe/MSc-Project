@@ -1,105 +1,85 @@
 device_profiles:
 
   Authentication server:
-    vulnerability: 4.0     # Typically hardened, but still has some exposure
+    vulnerability: 5.5     # Medium (often hardened but still possible CVEs)
     compromise_value: 10.0 # If compromised, attacker can gain domain-wide access
     information_value: 9.5 # Contains sensitive credentials
-    internet_required: false
+    internet_sensitive: false
+
+  Domain controller:
+    vulnerability: 9.0     # High/Critical — DC vulnerabilities often get 9–10 (e.g., Zerologon)
+    compromise_value: 9.5  # Compromise allows full control of enterprise authentication
+    information_value: 9.0 # Contains sensitive identity data (hashes, credentials, group policies)
     internet_sensitive: true
-    trust_level: high
 
   Syslog server:
-    vulnerability: 3.5     # Usually internal and tightly controlled
+    vulnerability: 3.0     # Low (internal, minimal external attack surface)
     compromise_value: 9.0  # Loss of visibility into the network
     information_value: 8.5 # Stores logs, useful for attacker reconnaissance
-    internet_required: false
-    internet_sensitive: true
-    trust_level: high
+    internet_sensitive: false
 
   Web server:
-    vulnerability: 7.0     # Often exposed to the internet and a common target
+    vulnerability: 7.5     # High, common internet-facing target
     compromise_value: 7.0  # May be used for lateral movement
-    information_value: 6.0 # May leak system info or user data
-    internet_required: true
+    information_value: 6.0 # Contains sensitive data (e.g., user credentials, session cookies)
     internet_sensitive: true
-    trust_level: low
 
   E-mail server:
-    vulnerability: 6.5     # Exposed, frequently targeted for phishing, relay attacks
+    vulnerability: 7.0     # High (phishing, relay, though often patched)
     compromise_value: 8.0  # Impacts business communication and internal trust
     information_value: 8.5 # Contains sensitive conversations and documents
-    internet_required: true
     internet_sensitive: true
-    trust_level: medium
 
   DNS server:
-    vulnerability: 5.5     # DNS cache poisoning and DoS are possible
+    vulnerability: 8.0     # High (e.g., SIGRed CVSS 10 DNS vulnerability)
     compromise_value: 6.5  # Could redirect internal traffic
     information_value: 5.0 # May leak domain info or network topology
-    internet_required: true
     internet_sensitive: true
-    trust_level: medium
 
   SQL database:
-    vulnerability: 6.0     # Externally facing databases are risky, but often well-guarded
+    vulnerability: 6.5     # Medium–High for externally reachable databases
     compromise_value: 9.0  # Essential for most backend systems
     information_value: 10.0 # Contains highly sensitive data
-    internet_required: false
-    internet_sensitive: true
-    trust_level: high
+    internet_sensitive: false
 
   Printer:
-    vulnerability: 4.5     # Often outdated firmware, low monitoring
+    vulnerability: 3.5     # Low (outdated firmware, limited exploitability)
     compromise_value: 2.0  # Low operational impact
     information_value: 2.5 # May expose printed documents
-    internet_required: false
     internet_sensitive: false
-    trust_level: low
 
   Printer server:
-    vulnerability: 4.5
+    vulnerability: 3.5     # Low
     compromise_value: 4.0  # Loss affects productivity
     information_value: 3.0 # Slight leak of document metadata possible
-    internet_required: false
     internet_sensitive: false
-    trust_level: medium
 
   DHCP server:
-    vulnerability: 5.0     # May be targeted for MITM attacks
+    vulnerability: 4.5     # Medium (can be used for DHCP spoofing)
     compromise_value: 5.5  # Disrupts address assignment
     information_value: 3.5 # Low sensitivity but could reveal internal structure
-    internet_required: false
-    internet_sensitive: true
-    trust_level: medium
+    internet_sensitive: false
 
   Admin computer:
-    vulnerability: 6.5     # Moderately vulnerable, assuming some hardening
+    vulnerability: 6.0     # Medium–High, assuming some hardening
     compromise_value: 7.0  # Admin access can lead to privilege escalation
     information_value: 8.0 # Likely has credentials or access to sensitive systems
-    internet_required: true
     internet_sensitive: true
-    trust_level: high
 
   Workstation:
-    vulnerability: 6.0     # Moderate, subject to phishing, drive-by downloads
+    vulnerability: 5.0     # Medium (phishing)
     compromise_value: 4.5  # A pivot point for further attacks
     information_value: 5.0 # Personal/business data may be present
-    internet_required: true
     internet_sensitive: true
-    trust_level: medium
 
   Guest device:
-    vulnerability: 7.5     # Untrusted and poorly monitored
+    vulnerability: 7.0     # High (untrusted, poorly monitored)
     compromise_value: 2.5  # Ideally segmented, but still some risk
-    information_value: 1.0 # Assumed no access to internal assets
-    internet_required: true
-    internet_sensitive: false
-    trust_level: low
+    information_value: 5.0 # Personal/business data may be present
+    internet_sensitive: true
 
   IOT device:
-    vulnerability: 3.0
-    compromise_value: 0.5
-    information_value: 0.5
-    internet_required: true
+    vulnerability: 6.5     # Medium–High (IoT often has high vulnerabilities)
+    compromise_value: 0.5  # Low risk
+    information_value: 0.5 # Low information value
     internet_sensitive: true
-    trust_level: low

@@ -13,6 +13,7 @@ devices:
   DNS server: 3
   DHCP server: 3
   Authentication server: 3
+  Domain controller: 2      # Primary and secondary domain controllers
   NTP server: 2
   Syslog server: 2
   Firewall appliance: 4
