@@ -95,7 +95,6 @@ class Enclave:
         self.devices: List[Device] = devices
         self.compromised = False
         self.dist_to_internet: Optional[int] = dist_to_internet  # Number of hops to the internet
-        # self.child_enclaves: List[Enclave] = []
         
     def num_devices(self) -> int:
         """Returns the number of devices in the enclave."""
@@ -103,8 +102,6 @@ class Enclave:
     
     def all_devices(self) -> List[Device]:
         """Returns a list of all devices in the enclave."""
-        # if self.child_enclaves:
-        #     return [device for child in self.child_enclaves for device in child.all_devices()]
         return self.devices
         
     def infected_devices(self):
@@ -395,11 +392,23 @@ class SegmentationNode:
         """Update the segmentation by the path of enclave indices."""
         # Make sure metrics cache of new node is clear
         new_node.seg.clear_metrics_cache()
+
+        if not path:
+            # Update this node's attributes with the new node's data
+            self.seg = new_node.seg
+            self.level = new_node.level
+            self.config = new_node.config
+            self.children = new_node.children
+            # Update parent references for children
+            for child in self.children.values():
+                child.parent = self
+            return
         
         node = self
         for idx in path[:-1]:
             node = node.children[idx]
         node.children[path[-1]] = new_node # Update node
+        new_node.parent = node  # Set parent reference
     
     def propagate_infection_to_children(self):
         """

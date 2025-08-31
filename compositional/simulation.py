@@ -112,6 +112,7 @@ class Simulation:
                             print("     [!] Enclave cleansing triggered.")
                         self.cleansing_loss += self.cleansing_loss_with_investigation(enclave)
                         self.enclave_cleansing(enclave)
+                        return
     
     def reconnaissance(self, enclave: Enclave, time: int) -> int:
         """
@@ -132,7 +133,7 @@ class Simulation:
                 new_device.prior_information_value = new_device.information_value
         return recon_time
 
-    def select_best(self, devices: List[Device]) -> List[Device]:
+    def select_best(self, devices: List[Device], k: int = 5) -> List[Device]:
         """
         Select the best 5 devices to infect based on their true information value and compromise value.
         
@@ -145,7 +146,7 @@ class Simulation:
                             self.C_appetite * d.compromise_value),
             reverse=True
         )
-        return sorted_devices[:5]
+        return sorted_devices[:k]
     
     def network_spread(self):
         """

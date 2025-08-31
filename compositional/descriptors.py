@@ -42,7 +42,7 @@ def behavior_descriptors(seg: Segmentation, descriptors: List[str]) -> List[floa
 
 def bins(config: MapElitesConfig) -> List[float]:
     """Discretizes the behavior descriptor into bins."""
-    # TODO: Better binning strategy
+    # Better binning strategy?
     n_enclaves = config.n_enclaves
     num_std = sum(1 for d in config.descriptors if "std" in d)
     std_bin = max(2, int(round((config.batch_size * 3) ** (1 / num_std))))  # at least 2 per dim

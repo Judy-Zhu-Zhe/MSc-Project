@@ -88,21 +88,6 @@ def resilience_loss(segmentation: Segmentation) -> float:
     return loss / (n_enclaves - 1) if n_enclaves > 1 else 0
 
 
-def topology_distance(matrix1: List[List[int]], matrix2: List[List[int]]) -> float:
-    """
-    Computes the Euclidean distance between two adjacency matrices.
-
-    :param matrix1: First adjacency matrix (list of lists of 0s and 1s)
-    :param matrix2: Second adjacency matrix
-    :return: Euclidean distance
-    """
-    assert len(matrix1) == len(matrix2), "Matrices must be the same size"
-    assert all(len(row1) == len(row2) for row1, row2 in zip(matrix1, matrix2)), "Matrices must be square and aligned"
-
-    flat1 = [val for row in matrix1 for val in row]
-    flat2 = [val for row in matrix2 for val in row]
-    return math.sqrt(sum((a - b) ** 2 for a, b in zip(flat1, flat2)))
-
 
 def attack_surface_exposure(seg: Segmentation, vuln_threshold: float = 7.0, info_threshold: float = 7.0) -> float:
     """
@@ -156,7 +141,7 @@ def trust_separation_score(seg: Segmentation) -> float:
         for d1, d2 in combinations(devices, 2):
             # Penalize large differences in compromise values within same enclave
             comp_diff = abs(d1.compromise_value - d2.compromise_value)
-            if comp_diff > 5:  # Threshold for significant difference
+            if comp_diff > 3:  # Threshold for significant difference
                 penalty += (comp_diff / 5) ** 2
 
     # Inter-Enclave Mismatch - Penalize connecting enclaves with very different compromise profiles
@@ -174,9 +159,62 @@ def trust_separation_score(seg: Segmentation) -> float:
                     
                     # Penalize connecting enclaves with very different compromise profiles
                     comp_diff = abs(avg_comp_i - avg_comp_j)
-                    if comp_diff > 3:  # Threshold for significant mismatch
+                    if comp_diff > 6:  # Threshold for significant mismatch
                         penalty += comp_diff
 
     return penalty
+
+
+def sensitivity_penalty(segmentation: Segmentation, 
+                                info_threshold: float = 7.5, 
+                                comp_threshold: float = 5.0,
+                                sensitivity_threshold: float = 0.5) -> float:
+    """
+    This function identifies devices that have both high information value and 
+    high compromise value, and penalizes their placement in enclaves with 
+    low sensitivity (which would be slow to respond to compromises).
+    
+    :param segmentation: The network segmentation object
+    :param info_threshold: Information value threshold to consider "high"
+    :param comp_threshold: Compromise value threshold to consider "high"
+    :param sensitivity_threshold: Sensitivity threshold below which is considered "low"
+    :return: Float penalty score for sensitivity mismatches
+    """
+    total_penalty = 0.0
+    
+    for enclave in segmentation.enclaves:
+        # Skip Internet enclave (id 0)
+        if enclave.id == 0:
+            continue
+            
+        # Check if this enclave has low sensitivity
+        if enclave.sensitivity < sensitivity_threshold:
+            # Look for high-value devices in this low-sensitivity enclave
+            for device in enclave.all_devices():
+                # Check if device has both high information value and high compromise value
+                if (device.information_value >= info_threshold and 
+                    device.compromise_value >= comp_threshold):
+                    
+                    # Calculate penalty based on the severity of the mismatch
+                    # Higher penalty for:
+                    # 1. Higher information value
+                    # 2. Higher compromise value  
+                    # 3. Lower enclave sensitivity
+                    
+                    # Normalize values to 0-1 range for penalty calculation
+                    info_factor = min(device.information_value / 10.0, 1.0)
+                    comp_factor = min(device.compromise_value / 10.0, 1.0)
+                    sensitivity_factor = max(0.0, 1.0 - (enclave.sensitivity / sensitivity_threshold))
+                    
+                    # Calculate device penalty: product of all factors
+                    device_penalty = info_factor * comp_factor * sensitivity_factor * 10.0
+                    
+                    # Additional penalty multiplier for very high-value devices in very low-sensitivity enclaves
+                    if device.information_value >= 9.0 and device.compromise_value >= 9.0 and enclave.sensitivity < 0.7:
+                        device_penalty *= 2.0
+                    
+                    total_penalty += device_penalty
+    
+    return total_penalty
 
 

@@ -6,8 +6,9 @@ import yaml
 import json
 from datetime import datetime
 from itertools import combinations
+import math
 
-from network import Device, Segmentation, SegmentationNode
+from network import Device, Segmentation, SegmentationNode, Topology
 
 N_ENCLAVES = 5 # Number of enclaves in the network
 P_UPDATE = 1/90  # Probability of successful update
@@ -15,6 +16,47 @@ R_RECONNAISSANCE = 0.7  # Reconnaissance rate
 C_APPETITE = 0.9  # Compromise appetite
 I_APPETITE = 0.4  # Infection appetite
 BETA = 2
+
+def topology_distance(matrix1: List[List[int]], matrix2: List[List[int]]) -> float:
+    """
+    Computes the Euclidean distance between two adjacency matrices.
+
+    :param matrix1: First adjacency matrix (list of lists of 0s and 1s)
+    :param matrix2: Second adjacency matrix
+    :return: Euclidean distance
+    """
+    assert len(matrix1) == len(matrix2), "Matrices must be the same size"
+    assert all(len(row1) == len(row2) for row1, row2 in zip(matrix1, matrix2)), "Matrices must be square and aligned"
+
+    flat1 = [val for row in matrix1 for val in row]
+    flat2 = [val for row in matrix2 for val in row]
+    return math.sqrt(sum((a - b) ** 2 for a, b in zip(flat1, flat2)))
+
+def topology_neighbours(graphs: List[List[Tuple[int, int]]], num_enclaves: int, K: int = 5, verbose: bool = False) -> Tuple[List[Topology], List[List[int]], List[List[float]]]:
+    """
+    ### Equation 6 ###
+    Generate topology list and KNN-based neighbour tables for topology mutation.
+    """
+    topology_list = [Topology(id=i, n_enclaves=num_enclaves, topology=graph) for i, graph in enumerate(graphs)]
+    neighbours_table = []
+    distances_table = []
+
+    for i, topology in enumerate(topology_list):
+        distances = []
+        for j, other_topology in enumerate(topology_list):
+            # Calculate distance between topologies using adjacency matrix
+            dist = topology_distance(topology.adj_matrix, other_topology.adj_matrix)
+            distances.append((j, dist))
+        
+        distances.sort(key=lambda x: x[1]) # Sort by distance
+        top_k = distances[1 : K + 1]  # skip self (distance 0)
+
+        neighbours_table.append([idx for idx, _ in top_k])
+        distances_table.append([dist for _, dist in top_k])
+
+    if verbose:
+        print(f"Topology initialization done!")
+    return topology_list, neighbours_table, distances_table
 
 def generate_universe(n_enclaves: int, constraints: Dict[str, int] = {}) -> List[List[Tuple[int, int]]]:
     """
@@ -108,6 +150,18 @@ class MapElitesConfig:
     c_appetite: float = C_APPETITE
     i_appetite: float = I_APPETITE
     verbose: bool = False
+    # Topology data fields
+    topology_list: List[Topology] = field(default_factory=list)
+    neighbours_table: List[List[int]] = field(default_factory=list)
+    distances_table: List[List[float]] = field(default_factory=list)
+    K: int = 5  # Number of nearest neighbors for topology mutation
+
+    def __post_init__(self):
+        """Calculate topology data after initialization."""
+        if not self.topology_list:
+            self.topology_list, self.neighbours_table, self.distances_table = topology_neighbours(
+                self.universe, self.n_enclaves, self.K, self.verbose
+            )
 
     def to_dict(self) -> dict:
         """Convert config to dictionary for serialization."""
@@ -130,7 +184,8 @@ class MapElitesConfig:
             "r_reconnaissance": self.r_reconnaissance,
             "c_appetite": self.c_appetite,
             "i_appetite": self.i_appetite,
-            "verbose": self.verbose
+            "verbose": self.verbose,
+            "K": self.K
         }
     
     @classmethod
@@ -223,15 +278,16 @@ class ConfigManager:
     def update_config_for_adaptation(self, config: MapElitesConfig) -> MapElitesConfig:
         """Update the configuration for adaptation."""
         config.name += "_adaptation"
+        # config.evaluation_metrics["topology_distance"] = 1.0
         return config
     
-    def save_results(self, seg_node: SegmentationNode, grid: Optional[Dict] = None) -> str:
+    def save_results(self, seg_node: SegmentationNode, grid: Optional[Dict] = None, filename: str = "") -> str:
         """Save the segmentation and grid results to JSON files."""
         dir_path = f"segmentations/{self.config.name}"
         os.makedirs(dir_path, exist_ok=True) # Ensure directory exists
 
         # Save segmentation
-        seg_path = f"{dir_path}/seg_{self.filename}.json"
+        seg_path = f"{dir_path}/{filename if filename else f"seg_{self.filename}"}.json"
         with open(seg_path, "w", encoding="utf-8") as f:
             json.dump(seg_node.to_dict(), f, indent=2)
         print(f"Saved segmentation to {seg_path}")
