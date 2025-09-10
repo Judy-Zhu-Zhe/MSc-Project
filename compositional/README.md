@@ -92,8 +92,12 @@ pip install -r requirements.txt
 - `networkx>=2.8.0` - Graph algorithms and network analysis
 - `numpy>=1.21.0` - Numerical computations
 - `scikit-learn>=1.0.0` - Machine learning algorithms (for k-way cut)
-- `matplotlib` - Visualization
-- `pyyaml` - Configuration file parsing
+- `matplotlib>=3.5.0` - Basic visualization
+- `plotly>=5.0.0` - Interactive visualization
+- `circlify>=0.0.5` - Hierarchical circular visualization
+- `pyyaml>=6.0.0` - Configuration file parsing
+- `pandas>=1.3.0` - Data processing and analysis
+- `graphillion>=1.3.4` - Graph enumeration algorithms
 
 ### **2. Configuration**
 
@@ -252,10 +256,10 @@ segmentation = kway.generate_segmentation(n_enclaves=8)
 
 This system is designed for research in:
 - **Network Security**: Multi-level segmentation strategies
-- **Evolutionary Algorithms**: Compositional MAP-Elites optimization
-- **Critical Infrastructure**: OT/ICS network protection
-- **Zero Trust Architecture**: Micro-segmentation implementation
 - **Attack Simulation**: Hierarchical infection propagation
+- **Evolutionary Algorithms**: Compositional MAP-Elites optimization
+- **Zero Trust Architecture**: Micro-segmentation implementation
+- **Critical Infrastructure**: OT/ICS network protection
 
 ---
 
@@ -266,7 +270,6 @@ To extend the system:
 2. Add comprehensive docstrings to new functions
 3. Update configuration files for new features
 4. Test with both small and large-scale networks
-5. Update this README with new functionality
 
 ---
 
