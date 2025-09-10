@@ -88,6 +88,21 @@ def resilience_loss(segmentation: Segmentation) -> float:
     return loss / (n_enclaves - 1) if n_enclaves > 1 else 0
 
 
+def topology_distance(matrix1: List[List[int]], matrix2: List[List[int]]) -> float:
+    """
+    Computes the Euclidean distance between two adjacency matrices.
+
+    :param matrix1: First adjacency matrix (list of lists of 0s and 1s)
+    :param matrix2: Second adjacency matrix
+    :return: Euclidean distance
+    """
+    assert len(matrix1) == len(matrix2), "Matrices must be the same size"
+    assert all(len(row1) == len(row2) for row1, row2 in zip(matrix1, matrix2)), "Matrices must be square and aligned"
+
+    flat1 = [val for row in matrix1 for val in row]
+    flat2 = [val for row in matrix2 for val in row]
+    return math.sqrt(sum((a - b) ** 2 for a, b in zip(flat1, flat2)))
+
 
 def attack_surface_exposure(seg: Segmentation, vuln_threshold: float = 7.0, info_threshold: float = 7.0) -> float:
     """
@@ -125,8 +140,57 @@ def attack_surface_exposure(seg: Segmentation, vuln_threshold: float = 7.0, info
     
     return total_exposure_score
 
-
 def trust_separation_score(seg: Segmentation) -> float:
+    """
+    Penalty for compromised values within and between enclaves.
+    Optimized version with O(D + E²) complexity instead of O(D² + E² * D).
+    
+    :param seg: The segmentation object
+    :return: Float penalty score based on compromised values
+    """
+    penalty = 0.0
+
+    # Pre-calculate average compromise values for each enclave to avoid repeated calculations
+    enclave_avg_compromise = {}
+    for i, enclave in enumerate(seg.enclaves):
+        devices = enclave.all_devices()
+        if devices:
+            avg_comp = sum(d.compromise_value for d in devices) / len(devices)
+            enclave_avg_compromise[i] = avg_comp
+
+    # Intra-Enclave Mismatch - Optimized approach
+    for enclave in seg.enclaves:
+        devices = enclave.all_devices()
+        if len(devices) < 2:
+            continue
+            
+        # Instead of checking all combinations, use statistical approach
+        # Calculate variance of compromise values as a proxy for mismatch
+        comp_values = [d.compromise_value for d in devices]
+        mean_comp = sum(comp_values) / len(comp_values)
+        variance = sum((comp - mean_comp) ** 2 for comp in comp_values) / len(comp_values)
+        
+        # Convert variance to penalty (higher variance = higher penalty)
+        if variance > 4.0:  # Threshold for significant variance
+            penalty += (variance / 4.0) * len(devices) * 0.5  # Scale by device count
+
+    # Inter-Enclave Mismatch - Use pre-calculated averages
+    for i in range(len(seg.enclaves)):
+        for j in range(i + 1, len(seg.enclaves)):
+            if seg.topology.adj_matrix[i][j]:
+                # Use pre-calculated averages
+                if i in enclave_avg_compromise and j in enclave_avg_compromise:
+                    avg_comp_i = enclave_avg_compromise[i]
+                    avg_comp_j = enclave_avg_compromise[j]
+                    
+                    # Penalize connecting enclaves with very different compromise profiles
+                    comp_diff = abs(avg_comp_i - avg_comp_j)
+                    if comp_diff > 6:  # Threshold for significant mismatch
+                        penalty += comp_diff
+
+    return penalty
+
+def trust_separation_score_nested(seg: Segmentation) -> float:
     """
     Penalty for compromised values within and between enclaves.
     

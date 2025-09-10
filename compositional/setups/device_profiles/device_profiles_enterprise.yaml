@@ -10,10 +10,10 @@ device_profiles:
     vulnerability: 9.0     # High/Critical — DC vulnerabilities often get 9–10 (e.g., Zerologon)
     compromise_value: 9.5  # Compromise allows full control of enterprise authentication
     information_value: 9.0 # Contains sensitive identity data (hashes, credentials, group policies)
-    internet_sensitive: true
+    internet_sensitive: false
 
   Syslog server:
-    vulnerability: 3.0     # Low (internal, minimal external attack surface)
+    vulnerability: 3.5     # Low (internal, minimal external attack surface)
     compromise_value: 9.0  # Loss of visibility into the network
     information_value: 8.5 # Stores logs, useful for attacker reconnaissance
     internet_sensitive: false
@@ -74,8 +74,8 @@ device_profiles:
 
   Guest device:
     vulnerability: 7.0     # High (untrusted, poorly monitored)
-    compromise_value: 2.5  # Ideally segmented, but still some risk
-    information_value: 5.0 # Personal/business data may be present
+    compromise_value: 0.5  # Ideally segmented, but still some risk
+    information_value: 4.0 # Personal/business data may be present
     internet_sensitive: true
 
   IOT device:

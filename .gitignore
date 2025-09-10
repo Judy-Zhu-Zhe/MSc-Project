@@ -3,3 +3,4 @@ compositional/data
 baseline/imgs
 baseline/segmentations
 .vscode
+baseline/__pycache__

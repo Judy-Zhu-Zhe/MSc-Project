@@ -51,7 +51,7 @@ def run_segmentation(config: MapElitesConfig, infected_seg: Segmentation = None,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="configs/config_exp1.yaml", help="Path to config YAML")
+    parser.add_argument("--config", default="configs/scalability.yaml", help="Path to config YAML")
     parser.add_argument("--save", action="store_true", help="Save results to disk")
     parser.add_argument("--seg", type=str, help="Path to segmentation JSON for adaptation")
     args = parser.parse_args()

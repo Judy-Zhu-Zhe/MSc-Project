@@ -1,0 +1,1908 @@
+{
+  "seg": {
+    "topology": {
+      "id": 0,
+      "num_enclaves": 9,
+      "topology": [
+        [0, 1],
+        [0, 6],
+        [0, 7],
+        [1, 3],
+        [2, 3],
+        [3, 4],
+        [4, 5],
+        [5, 6],
+        [5, 8],
+        [6, 7]
+      ]
+    },
+    "partition": [
+      [],
+      [
+        {
+          "name": "Web server 1",
+          "device_type": "Web server",
+          "vulnerability": 7.5,
+          "compromise_value": 7.0,
+          "information_value": 6.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Web server 2",
+          "device_type": "Web server",
+          "vulnerability": 7.5,
+          "compromise_value": 7.0,
+          "information_value": 6.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "DNS server 1",
+          "device_type": "DNS server",
+          "vulnerability": 8.0,
+          "compromise_value": 6.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "E-mail server 1",
+          "device_type": "E-mail server",
+          "vulnerability": 7.0,
+          "compromise_value": 8.0,
+          "information_value": 8.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        }
+      ],
+      [
+        {
+          "name": "Authentication server 1",
+          "device_type": "Authentication server",
+          "vulnerability": 5.5,
+          "compromise_value": 10.0,
+          "information_value": 9.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": false,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Domain controller 1",
+          "device_type": "Domain controller",
+          "vulnerability": 9.0,
+          "compromise_value": 9.5,
+          "information_value": 9.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": false,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Syslog server 1",
+          "device_type": "Syslog server",
+          "vulnerability": 3.5,
+          "compromise_value": 9.0,
+          "information_value": 8.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": false,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        }
+      ],
+      [
+        {
+          "name": "SQL database 1",
+          "device_type": "SQL database",
+          "vulnerability": 6.5,
+          "compromise_value": 9.0,
+          "information_value": 10.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": false,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "SQL database 2",
+          "device_type": "SQL database",
+          "vulnerability": 6.5,
+          "compromise_value": 9.0,
+          "information_value": 10.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": false,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "SQL database 3",
+          "device_type": "SQL database",
+          "vulnerability": 6.5,
+          "compromise_value": 9.0,
+          "information_value": 10.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": false,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        }
+      ],
+      [
+        {
+          "name": "DHCP server 1",
+          "device_type": "DHCP server",
+          "vulnerability": 4.5,
+          "compromise_value": 5.5,
+          "information_value": 3.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": false,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "DNS server 2",
+          "device_type": "DNS server",
+          "vulnerability": 8.0,
+          "compromise_value": 6.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": false,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Printer server 1",
+          "device_type": "Printer server",
+          "vulnerability": 3.5,
+          "compromise_value": 4.0,
+          "information_value": 3.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": false,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Printer server 2",
+          "device_type": "Printer server",
+          "vulnerability": 3.5,
+          "compromise_value": 4.0,
+          "information_value": 3.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": false,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Admin computer 1",
+          "device_type": "Admin computer",
+          "vulnerability": 6.0,
+          "compromise_value": 7.0,
+          "information_value": 8.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Admin computer 2",
+          "device_type": "Admin computer",
+          "vulnerability": 6.0,
+          "compromise_value": 7.0,
+          "information_value": 8.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        }
+      ],
+      [
+        {
+          "name": "Workstation 1",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 2",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 3",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 4",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 5",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 6",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 7",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 8",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 9",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 10",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 11",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 12",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 13",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 14",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 15",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 16",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 17",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 18",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 19",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 20",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 21",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 22",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 23",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 24",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Workstation 25",
+          "device_type": "Workstation",
+          "vulnerability": 5.0,
+          "compromise_value": 4.5,
+          "information_value": 5.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        }
+      ],
+      [
+        {
+          "name": "Guest device 1",
+          "device_type": "Guest device",
+          "vulnerability": 7.0,
+          "compromise_value": 0.5,
+          "information_value": 4.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Guest device 2",
+          "device_type": "Guest device",
+          "vulnerability": 7.0,
+          "compromise_value": 0.5,
+          "information_value": 4.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Guest device 3",
+          "device_type": "Guest device",
+          "vulnerability": 7.0,
+          "compromise_value": 0.5,
+          "information_value": 4.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Guest device 4",
+          "device_type": "Guest device",
+          "vulnerability": 7.0,
+          "compromise_value": 0.5,
+          "information_value": 4.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Guest device 5",
+          "device_type": "Guest device",
+          "vulnerability": 7.0,
+          "compromise_value": 0.5,
+          "information_value": 4.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Guest device 6",
+          "device_type": "Guest device",
+          "vulnerability": 7.0,
+          "compromise_value": 0.5,
+          "information_value": 4.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Guest device 7",
+          "device_type": "Guest device",
+          "vulnerability": 7.0,
+          "compromise_value": 0.5,
+          "information_value": 4.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Guest device 8",
+          "device_type": "Guest device",
+          "vulnerability": 7.0,
+          "compromise_value": 0.5,
+          "information_value": 4.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Guest device 9",
+          "device_type": "Guest device",
+          "vulnerability": 7.0,
+          "compromise_value": 0.5,
+          "information_value": 4.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Guest device 10",
+          "device_type": "Guest device",
+          "vulnerability": 7.0,
+          "compromise_value": 0.5,
+          "information_value": 4.0,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        }
+      ],
+      [
+        {
+          "name": "IOT device 1",
+          "device_type": "IOT device",
+          "vulnerability": 6.5,
+          "compromise_value": 0.5,
+          "information_value": 0.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "IOT device 2",
+          "device_type": "IOT device",
+          "vulnerability": 6.5,
+          "compromise_value": 0.5,
+          "information_value": 0.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "IOT device 3",
+          "device_type": "IOT device",
+          "vulnerability": 6.5,
+          "compromise_value": 0.5,
+          "information_value": 0.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "IOT device 4",
+          "device_type": "IOT device",
+          "vulnerability": 6.5,
+          "compromise_value": 0.5,
+          "information_value": 0.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "IOT device 5",
+          "device_type": "IOT device",
+          "vulnerability": 6.5,
+          "compromise_value": 0.5,
+          "information_value": 0.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "IOT device 6",
+          "device_type": "IOT device",
+          "vulnerability": 6.5,
+          "compromise_value": 0.5,
+          "information_value": 0.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "IOT device 7",
+          "device_type": "IOT device",
+          "vulnerability": 6.5,
+          "compromise_value": 0.5,
+          "information_value": 0.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "IOT device 8",
+          "device_type": "IOT device",
+          "vulnerability": 6.5,
+          "compromise_value": 0.5,
+          "information_value": 0.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": true,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        }
+      ],
+      [
+        {
+          "name": "Printer 1",
+          "device_type": "Printer",
+          "vulnerability": 3.5,
+          "compromise_value": 2.0,
+          "information_value": 2.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": false,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Printer 2",
+          "device_type": "Printer",
+          "vulnerability": 3.5,
+          "compromise_value": 2.0,
+          "information_value": 2.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": false,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Printer 3",
+          "device_type": "Printer",
+          "vulnerability": 3.5,
+          "compromise_value": 2.0,
+          "information_value": 2.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": false,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Printer 4",
+          "device_type": "Printer",
+          "vulnerability": 3.5,
+          "compromise_value": 2.0,
+          "information_value": 2.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": false,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        },
+        {
+          "name": "Printer 5",
+          "device_type": "Printer",
+          "vulnerability": 3.5,
+          "compromise_value": 2.0,
+          "information_value": 2.5,
+          "prior_information_value": 0.0,
+          "internet_sensitive": false,
+          "infected": false,
+          "turned_down": false,
+          "has_been_infected": false
+        }
+      ]
+    ],
+    "sensitivities": [0.0, 0.8, 0.8, 0.9, 0.9, 0.6, 0.3, 0.2, 0.2],
+    "metrics_cache": {}
+  },
+  "level": 0,
+  "children": {
+    "1": {
+      "seg": {
+        "topology": {
+          "id": 0,
+          "num_enclaves": 5,
+          "topology": [
+            [0, 1],
+            [0, 2],
+            [0, 3],
+            [0, 4]
+          ]
+        },
+        "partition": [
+          [],
+          [
+            {
+              "name": "Web server 1",
+              "device_type": "Web server",
+              "vulnerability": 7.5,
+              "compromise_value": 7.0,
+              "information_value": 6.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Web server 2",
+              "device_type": "Web server",
+              "vulnerability": 7.5,
+              "compromise_value": 7.0,
+              "information_value": 6.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "DNS server 1",
+              "device_type": "DNS server",
+              "vulnerability": 8.0,
+              "compromise_value": 6.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "E-mail server 1",
+              "device_type": "E-mail server",
+              "vulnerability": 7.0,
+              "compromise_value": 8.0,
+              "information_value": 8.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ]
+        ],
+        "sensitivities": [0.0, 0.8, 0.8, 0.8, 0.8],
+        "metrics_cache": {}
+      },
+      "level": 1,
+      "children": {}
+    },
+    "2": {
+      "seg": {
+        "topology": {
+          "id": 0,
+          "num_enclaves": 4,
+          "topology": [
+            [0, 1],
+            [0, 2],
+            [0, 3]
+          ]
+        },
+        "partition": [
+          [],
+          [
+            {
+              "name": "Authentication server 1",
+              "device_type": "Authentication server",
+              "vulnerability": 5.5,
+              "compromise_value": 10.0,
+              "information_value": 9.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": false,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Domain controller 1",
+              "device_type": "Domain controller",
+              "vulnerability": 9.0,
+              "compromise_value": 9.5,
+              "information_value": 9.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": false,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Syslog server 1",
+              "device_type": "Syslog server",
+              "vulnerability": 3.5,
+              "compromise_value": 9.0,
+              "information_value": 8.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": false,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ]
+        ],
+        "sensitivities": [0.0, 0.9, 0.9, 0.9],
+        "metrics_cache": {}
+      },
+      "level": 1,
+      "children": {}
+    },
+    "3": {
+      "seg": {
+        "topology": {
+          "id": 0,
+          "num_enclaves": 4,
+          "topology": [
+            [0, 1],
+            [0, 2],
+            [0, 3]
+          ]
+        },
+        "partition": [
+          [],
+          [
+            {
+              "name": "SQL database 1",
+              "device_type": "SQL database",
+              "vulnerability": 6.5,
+              "compromise_value": 9.0,
+              "information_value": 10.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": false,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "SQL database 2",
+              "device_type": "SQL database",
+              "vulnerability": 6.5,
+              "compromise_value": 9.0,
+              "information_value": 10.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": false,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "SQL database 3",
+              "device_type": "SQL database",
+              "vulnerability": 6.5,
+              "compromise_value": 9.0,
+              "information_value": 10.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": false,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ]
+        ],
+        "sensitivities": [0.0, 0.9, 0.9, 0.9],
+        "metrics_cache": {}
+      },
+      "level": 1,
+      "children": {}
+    },
+    "4": {
+      "seg": {
+        "topology": {
+          "id": 0,
+          "num_enclaves": 7,
+          "topology": [
+            [0, 1],
+            [0, 2],
+            [0, 3],
+            [0, 4],
+            [0, 5],
+            [0, 6]
+          ]
+        },
+        "partition": [
+          [],
+          [
+            {
+              "name": "DHCP server 1",
+              "device_type": "DHCP server",
+              "vulnerability": 4.5,
+              "compromise_value": 5.5,
+              "information_value": 3.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": false,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "DNS server 2",
+              "device_type": "DNS server",
+              "vulnerability": 8.0,
+              "compromise_value": 6.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": false,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Printer server 1",
+              "device_type": "Printer server",
+              "vulnerability": 3.5,
+              "compromise_value": 4.0,
+              "information_value": 3.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": false,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Printer server 2",
+              "device_type": "Printer server",
+              "vulnerability": 3.5,
+              "compromise_value": 4.0,
+              "information_value": 3.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": false,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Admin computer 1",
+              "device_type": "Admin computer",
+              "vulnerability": 6.0,
+              "compromise_value": 7.0,
+              "information_value": 8.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Admin computer 2",
+              "device_type": "Admin computer",
+              "vulnerability": 6.0,
+              "compromise_value": 7.0,
+              "information_value": 8.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ]
+        ],
+        "sensitivities": [0.0, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6],
+        "metrics_cache": {}
+      },
+      "level": 1,
+      "children": {}
+    },
+    "5": {
+      "seg": {
+        "topology": {
+          "id": 0,
+          "num_enclaves": 26,
+          "topology": [
+            [0, 1],
+            [0, 2],
+            [0, 3],
+            [0, 4],
+            [0, 5],
+            [0, 6],
+            [0, 7],
+            [0, 8],
+            [0, 9],
+            [0, 10],
+            [0, 11],
+            [0, 12],
+            [0, 13],
+            [0, 14],
+            [0, 15],
+            [0, 16],
+            [0, 17],
+            [0, 18],
+            [0, 19],
+            [0, 20],
+            [0, 21],
+            [0, 22],
+            [0, 23],
+            [0, 24],
+            [0, 25]
+          ]
+        },
+        "partition": [
+          [],
+          [
+            {
+              "name": "Workstation 1",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 2",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 3",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 4",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 5",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 6",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 7",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 8",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 9",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 10",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 11",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 12",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 13",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 14",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 15",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 16",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 17",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 18",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 19",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 20",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 21",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 22",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 23",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 24",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Workstation 25",
+              "device_type": "Workstation",
+              "vulnerability": 5.0,
+              "compromise_value": 4.5,
+              "information_value": 5.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ]
+        ],
+        "sensitivities": [0.0, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3],
+        "metrics_cache": {}
+      },
+      "level": 1,
+      "children": {}
+    },
+    "6": {
+      "seg": {
+        "topology": {
+          "id": 0,
+          "num_enclaves": 11,
+          "topology": [
+            [0, 1],
+            [0, 2],
+            [0, 3],
+            [0, 4],
+            [0, 5],
+            [0, 6],
+            [0, 7],
+            [0, 8],
+            [0, 9],
+            [0, 10]
+          ]
+        },
+        "partition": [
+          [],
+          [
+            {
+              "name": "Guest device 1",
+              "device_type": "Guest device",
+              "vulnerability": 7.0,
+              "compromise_value": 0.5,
+              "information_value": 4.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Guest device 2",
+              "device_type": "Guest device",
+              "vulnerability": 7.0,
+              "compromise_value": 0.5,
+              "information_value": 4.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Guest device 3",
+              "device_type": "Guest device",
+              "vulnerability": 7.0,
+              "compromise_value": 0.5,
+              "information_value": 4.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Guest device 4",
+              "device_type": "Guest device",
+              "vulnerability": 7.0,
+              "compromise_value": 0.5,
+              "information_value": 4.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Guest device 5",
+              "device_type": "Guest device",
+              "vulnerability": 7.0,
+              "compromise_value": 0.5,
+              "information_value": 4.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Guest device 6",
+              "device_type": "Guest device",
+              "vulnerability": 7.0,
+              "compromise_value": 0.5,
+              "information_value": 4.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Guest device 7",
+              "device_type": "Guest device",
+              "vulnerability": 7.0,
+              "compromise_value": 0.5,
+              "information_value": 4.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Guest device 8",
+              "device_type": "Guest device",
+              "vulnerability": 7.0,
+              "compromise_value": 0.5,
+              "information_value": 4.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Guest device 9",
+              "device_type": "Guest device",
+              "vulnerability": 7.0,
+              "compromise_value": 0.5,
+              "information_value": 4.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Guest device 10",
+              "device_type": "Guest device",
+              "vulnerability": 7.0,
+              "compromise_value": 0.5,
+              "information_value": 4.0,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ]
+        ],
+        "sensitivities": [0.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
+        "metrics_cache": {}
+      },
+      "level": 1,
+      "children": {}
+    },
+    "7": {
+      "seg": {
+        "topology": {
+          "id": 0,
+          "num_enclaves": 9,
+          "topology": [
+            [0, 1],
+            [0, 2],
+            [0, 3],
+            [0, 4],
+            [0, 5],
+            [0, 6],
+            [0, 7],
+            [0, 8]
+          ]
+        },
+        "partition": [
+          [],
+          [
+            {
+              "name": "IOT device 1",
+              "device_type": "IOT device",
+              "vulnerability": 6.5,
+              "compromise_value": 0.5,
+              "information_value": 0.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "IOT device 2",
+              "device_type": "IOT device",
+              "vulnerability": 6.5,
+              "compromise_value": 0.5,
+              "information_value": 0.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "IOT device 3",
+              "device_type": "IOT device",
+              "vulnerability": 6.5,
+              "compromise_value": 0.5,
+              "information_value": 0.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "IOT device 4",
+              "device_type": "IOT device",
+              "vulnerability": 6.5,
+              "compromise_value": 0.5,
+              "information_value": 0.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "IOT device 5",
+              "device_type": "IOT device",
+              "vulnerability": 6.5,
+              "compromise_value": 0.5,
+              "information_value": 0.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "IOT device 6",
+              "device_type": "IOT device",
+              "vulnerability": 6.5,
+              "compromise_value": 0.5,
+              "information_value": 0.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "IOT device 7",
+              "device_type": "IOT device",
+              "vulnerability": 6.5,
+              "compromise_value": 0.5,
+              "information_value": 0.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "IOT device 8",
+              "device_type": "IOT device",
+              "vulnerability": 6.5,
+              "compromise_value": 0.5,
+              "information_value": 0.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": true,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ]
+        ],
+        "sensitivities": [0.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
+        "metrics_cache": {}
+      },
+      "level": 1,
+      "children": {}
+    },
+    "8": {
+      "seg": {
+        "topology": {
+          "id": 0,
+          "num_enclaves": 6,
+          "topology": [
+            [0, 1],
+            [0, 2],
+            [0, 3],
+            [0, 4],
+            [0, 5]
+          ]
+        },
+        "partition": [
+          [],
+          [
+            {
+              "name": "Printer 1",
+              "device_type": "Printer",
+              "vulnerability": 3.5,
+              "compromise_value": 2.0,
+              "information_value": 2.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": false,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Printer 2",
+              "device_type": "Printer",
+              "vulnerability": 3.5,
+              "compromise_value": 2.0,
+              "information_value": 2.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": false,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Printer 3",
+              "device_type": "Printer",
+              "vulnerability": 3.5,
+              "compromise_value": 2.0,
+              "information_value": 2.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": false,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Printer 4",
+              "device_type": "Printer",
+              "vulnerability": 3.5,
+              "compromise_value": 2.0,
+              "information_value": 2.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": false,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ],
+          [
+            {
+              "name": "Printer 5",
+              "device_type": "Printer",
+              "vulnerability": 3.5,
+              "compromise_value": 2.0,
+              "information_value": 2.5,
+              "prior_information_value": 0.0,
+              "internet_sensitive": false,
+              "infected": false,
+              "turned_down": false,
+              "has_been_infected": false
+            }
+          ]
+        ],
+        "sensitivities": [0.0, 0.2, 0.2, 0.2, 0.2, 0.2],
+        "metrics_cache": {}
+      },
+      "level": 1,
+      "children": {}
+    }
+  }
+}

@@ -1,0 +1,40 @@
+name: "OT_DuPont"
+
+configs:
+  # Level 0: Internet + 4 OT zones
+  - level: 0
+    n_enclaves: 4
+    constraints:
+      max_isps: 1
+      max_degree: 2
+    sensitivities: [0.3, 0.6, 0.8, 0.9]  # Business, Operations, Process, Safety
+    descriptors: ["std_devices", "std_high_value", "nb_high_deg_nodes"]
+    evaluation_metrics:
+      # security_loss: 1.0
+      performance_loss: 5.0
+      sensitivity_penalty: 1.0
+      attack_surface_exposure: 1.0
+      trust_separation_score_nested: 5.0
+    generations: 500
+    init_batch: 150
+    batch_size: 100
+    time_in_enclaves: 8
+    n_simulations: 8
+
+  # # Level 1: Refined Business Zone segmentation
+  # - level: 1
+  #   n_enclaves: 3
+  #   constraints:
+  #     max_isps: 1
+  #     max_degree: 2
+  #   sensitivities: [0.2, 0.5, 0.5]  # Business servers, Business clients
+  #   descriptors: ["std_devices", "std_web_facing"]
+  #   evaluation_metrics:
+  #     security_loss: 1.0
+  #     performance_loss: 0.5
+  #     resilience_loss: 0.3
+  #   generations: 100
+  #   init_batch: 100
+  #   batch_size: 50
+  #   time_in_enclaves: 4
+  #   n_simulations: 8

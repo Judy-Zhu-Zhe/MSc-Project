@@ -1,0 +1,51 @@
+name: Scalability
+n_enclaves: 5
+generations: 1000
+init_batch: 200
+batch_size: 100
+
+constraints:
+  max_isps: 3
+
+n_devices: 
+  # Public-facing DMZ
+  Web server: 2
+  DNS server: 1
+  E-mail server: 1
+
+  # High-value Authentication & Logging Zone
+  Authentication server: 1
+  Domain controller: 1      # For domain management
+  Syslog server: 1
+
+  # Database Zone
+  SQL database: 3
+
+  # IT Services Zone
+  DHCP server: 1
+  DNS server: 1  # Internal
+  Printer server: 2
+  Admin computer: 2
+
+  # Employee Network
+  Workstation: 25
+
+  # Guest Access Zone
+  Guest device: 10
+  IOT device: 8
+
+  # Shared Printer Zone
+  Printer: 5
+  Employee computer: 5
+  Printer: 1
+  Printer server: 1
+  DNS server: 1
+  DHCP server: 1
+  E-mail server: 1
+  Web server: 1
+  SQL database: 1
+  Syslog server: 1
+  Authentication server: 1
+
+descriptors: ["std_devices", "nb_high_deg_nodes", "std_web_facing"]
+metric_weights: [1, 0.05, 0.5]

@@ -7,7 +7,7 @@ from network import Device, Topology, Segmentation, SegmentationNode
 from simulation import Simulation
 from metrics import *
 from descriptors import *
-from config import MapElitesConfig, CompositionalConfig, topology_distance
+from config import MapElitesConfig, CompositionalConfig
 
 
 # ========================================================================================================================
@@ -20,15 +20,10 @@ def mutate(
         neighbours_table: List[List[int]],
         distances_table: List[List[float]],
         mutation_list: List[str] = ["topology", "partition"], 
-        fine_tuning: bool = False
+        n_mutations: int = 1
 ) -> Segmentation:
     """Mutates a segmentation by modifying its topology, device distribution, and sensitivities."""
-    if fine_tuning:   # Conservative fine-tuning
-        eta = 5.0
-        n_mutations = 1
-    else:            # More aggressive
-        eta = 10.0 
-        n_mutations = 5
+    eta = min(max(n_mutations, 1), 100) / 10 # More aggressive mutations for higher n_mutations
 
     # Mutate topology
     if "topology" in mutation_list:
@@ -151,7 +146,7 @@ def random_segmentation(topology: Topology, config: MapElitesConfig) -> Segmenta
         sensitivities=config.sensitivities
     )
 
-def fitness(config: MapElitesConfig, seg: Segmentation, infected_seg: Optional[Segmentation] = None) -> float:
+def fitness(config: MapElitesConfig, seg: Segmentation, infected_seg: Optional[Segmentation] = None, verbose: bool = False) -> float:
     """
     Calculates the negative weighted loss of a segmentation using evaluation metric functions.
     Each key in `config.evaluation_metrics` is a metric function name, each value is its weight.
@@ -182,9 +177,8 @@ def fitness(config: MapElitesConfig, seg: Segmentation, infected_seg: Optional[S
             # Add the metric to the cache
             seg.add_metric_cache(metric_name, loss)
 
-        if config.verbose:
-            print(f"Metric {metric_name} loss: {loss}")
-        # print(f"Metric {metric_name} loss: {round(loss, 2)} * {weight} = {round(weight * loss, 2)}")
+        if config.verbose or verbose:
+            print(f"Metric {metric_name} loss: {round(loss, 1)}")
         total_loss += weight * loss
 
     return - total_loss
@@ -208,7 +202,7 @@ def map_elites(config: MapElitesConfig,
         print(f"\n++++++++++++++++++ Starting MAP-Elites with {config.generations} generations ++++++++++++++++++")
     for _ in range(config.init_batch):
         if infected_segmentation:
-            seg = mutate(infected_segmentation, config.topology_list, config.neighbours_table, config.distances_table, fine_tuning=False)
+            seg = mutate(infected_segmentation, config.topology_list, config.neighbours_table, config.distances_table, n_mutations=1)
         else:
             seg = random_segmentation(random.choice(config.topology_list), config)
         desc = behavior_descriptors(seg, config.descriptors)
@@ -226,10 +220,10 @@ def map_elites(config: MapElitesConfig,
             sys.stdout.write(f"\rRunning generation [{g + 1}/{config.generations}], max fitness: {max(grid.values(), key=lambda x: x[1])[1]:.3f}")
         
         parents = random.sample(list(grid.values()), min(len(grid), config.batch_size))
-        fine_tuning = True if g > config.generations * 0.8 else False # Fine-tuning only after 80% of the generations
+        n_mutations = config.generations - g if g < config.generations * 0.8 else 1 # Fine-tuning only after 80% of the generations
         
         for parent_seg, _ in parents:
-            child = mutate(parent_seg, config.topology_list, config.neighbours_table, config.distances_table, fine_tuning=fine_tuning)
+            child = mutate(parent_seg, config.topology_list, config.neighbours_table, config.distances_table, n_mutations=n_mutations)
             desc = behavior_descriptors(child, config.descriptors)
             key = tuple(discretize(desc, bin_widths))
             f = fitness(config, child, infected_segmentation)

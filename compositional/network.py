@@ -3,12 +3,6 @@ from collections import deque
 
 from typing import List, Tuple, Dict, Optional
 
-# Import for config support
-try:
-    from config import MapElitesConfig
-except ImportError:
-    MapElitesConfig = None  # Type hint fallback
-
 # ========================================================================================================================
 #                                                      DEVICE
 # ========================================================================================================================
@@ -168,7 +162,7 @@ class Topology:
                 self.adj_matrix[i][j] = 1
                 self.adj_matrix[j][i] = 1
             except IndexError:
-                raise ValueError(f"Invalid topology: {i}, {j} out of range for {n_enclaves} enclaves.")
+                raise ValueError(f"Invalid edge ({i}, {j}) out of range for {n_enclaves} enclaves.")
         self.dist_to_internet = self.distances_to_target(0)  # Compute distances to the internet (index 0)
             
     def distances_to_target(self, target_index: int) -> List[Optional[int]]:
@@ -377,7 +371,7 @@ class Segmentation:
         return f"<Network Segmentation with {self.num_enclaves()} enclaves and device partition : {[len(p) for p in self.partition()]}>"
 
 class SegmentationNode:
-    def __init__(self, seg: Segmentation, level: int, config: Optional['MapElitesConfig'] = None, parent: Optional['SegmentationNode'] = None):
+    def __init__(self, seg: Segmentation, level: int, config = None, parent: Optional['SegmentationNode'] = None):
         self.seg = seg
         self.level = level
         self.config = config  # Store the configuration for this node
@@ -519,7 +513,7 @@ class SegmentationNode:
         }
 
 class Root(SegmentationNode):
-    def __init__(self, seg: Segmentation, config: Optional['MapElitesConfig'] = None):
+    def __init__(self, seg: Segmentation, config = None):
         super().__init__(seg, level=0, config=config, parent=None)
         self.children: Dict[int, SegmentationNode] = {}  # Enclave index -> child node
 

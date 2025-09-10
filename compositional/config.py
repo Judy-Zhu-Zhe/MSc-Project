@@ -8,7 +8,7 @@ from datetime import datetime
 from itertools import combinations
 import math
 
-from network import Device, Segmentation, SegmentationNode, Topology
+from network import Device, SegmentationNode, Topology
 
 N_ENCLAVES = 5 # Number of enclaves in the network
 P_UPDATE = 1/90  # Probability of successful update

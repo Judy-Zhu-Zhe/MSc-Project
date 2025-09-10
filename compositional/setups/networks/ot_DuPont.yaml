@@ -1,0 +1,34 @@
+name: ot_DuPont
+
+devices:
+
+  # Business Zone (Enterprise IT)
+  DUPONTNET Domain Controller: 2
+  DUPONTNET Resource Domain Controllers: 2
+  DNS Server: 1
+  Manufacturing Message Bus Adaptors (SAP, EConnect): 1
+  Manufacturing Application Server (L4): 1
+  Process Explorer Clients (L4): 10
+  PE Clients (L4): 10
+  Corporate Patch Management Server: 1
+  Web.21 Server: 1
+
+  # Operations Management Zone (OMZ)
+  IP 21 Server PM&C: 1
+  Manufacturing Application Server (L3): 1
+  PE Clients (L3): 5
+
+  # Process Control Zone (PCZ)
+  DCS AD Domain Controllers: 2
+  DCS Application Server: 1
+  DCS Consoles: 4
+  Process Explorer Clients (L2): 5
+  DCS Controllers: 4
+  Field Bus Gateway: 1
+  Field Devices (PCZ): 20
+
+  # Safety System Zone (SIS)
+  SIS (Safety Instrumented System): 2
+  Field Devices (Safety): 10
+
+

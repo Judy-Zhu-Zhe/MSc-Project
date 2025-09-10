@@ -27,6 +27,38 @@ DEVICE_COLOR_MAP = {
     'Guest device': 'limegreen',
     'IOT device': 'mediumseagreen',
     
+    # =========================
+    # OT DEVICES BY ZONE
+    # =========================
+    
+    # Business Zone (L4) - Blue-based colors
+    'DUPONTNET Domain Controller': 'darkblue',
+    'DUPONTNET Resource Domain Controllers': 'blue',
+    'Manufacturing Message Bus Adaptors (SAP, EConnect)': 'steelblue',
+    'Corporate Patch Management Server': 'royalblue',
+    'Manufacturing Application Server (L4)': 'mediumblue',
+    'Process Explorer Clients (L4)': 'lightblue',
+    'PE Clients (L4)': 'lightblue',
+    'Web.21 Server': 'skyblue',
+    
+    # Operations Management Zone (L3) - Green-based colors
+    'IP 21 Server PM&C': 'darkgreen',
+    'Manufacturing Application Server (L3)': 'forestgreen',
+    'PE Clients (L3)': 'limegreen',
+    
+    # Process Control Zone (L2/L1) - Yellow-based colors
+    'DCS AD Domain Controllers': 'gold',
+    'DCS Application Server': 'goldenrod',
+    'DCS Consoles': 'darkgoldenrod',
+    'Process Explorer Clients (L2)': 'yellow',
+    'DCS Controllers': 'orange',
+    'Field Bus Gateway': 'darkorange',
+    'Field Devices (PCZ)': 'khaki',
+    
+    # Safety System Zone - Purple-based colors
+    'SIS (Safety Instrumented System)': 'purple',
+    'Field Devices (Safety)': 'darkviolet',
+    
     # Default colors for unknown device types
     'low': 'green',
     'medium': 'yellow', 
@@ -448,7 +480,7 @@ def draw_compositional_segmentation_circlify(seg_node: SegmentationNode):
         x=[internet_x], y=[internet_y],
         mode="text",
         text=["Internet"],
-        textfont=dict(size=12, color="orange"),
+        textfont=dict(size=18, color="orange"),
         hoverinfo="text",
         showlegend=False
     ))
@@ -551,13 +583,13 @@ def draw_compositional_segmentation_circlify(seg_node: SegmentationNode):
     draw_internet_edges(seg_node, "root")
 
     # Add config summary to title if root has config
-    title = "Compositional Segmentation (circlify)"
+    title = "Compositional Network Segmentation"
     if seg_node.config:
         config_summary = get_config_summary(seg_node)
-        title += f"<br><sub>{config_summary}</sub>"
+        # title += f"<br><sub>{config_summary}</sub>"
 
     fig.update_layout(
-        title=title,
+        # title=title,
         xaxis=dict(visible=False),
         yaxis=dict(visible=False),
         width=1000, height=700,

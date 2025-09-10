@@ -1,0 +1,167 @@
+device_profiles:
+
+  # =========================
+  # BUSINESS ZONE (Purdue L4)
+  # =========================
+
+  DUPONTNET Domain Controller:
+    zone: Business Zone
+    vulnerability: 3.5       # Well-managed enterprise AD; lower vulnerability in DuPont model
+    compromise_value: 6.0    # High-value but not highest in hierarchy
+    information_value: 0.0   # Credentials, Kerberos keys, GPOs
+    internet_sensitive: true  # Never directly internet-exposed
+
+  DUPONTNET Resource Domain Controllers:
+    zone: Business Zone
+    vulnerability: 3.5       # Well-managed but additional roles increase surface
+    compromise_value: 6.0    # High-value but secondary to primary DC
+    information_value: 0.0
+    internet_sensitive: true
+
+  DNS Server:
+    zone: Business Zone
+    vulnerability: 4.0       # Well-managed in DuPont model
+    compromise_value: 6.5    # Important but not critical for OT operations
+    information_value: 0.0   # Config/logs sensitive; less "content" value
+    internet_sensitive: true
+
+  Manufacturing Message Bus Adaptors (SAP, EConnect):
+    zone: Business Zone
+    vulnerability: 4.5       # Well-controlled in DuPont model
+    compromise_value: 6.0    # Important for business but not critical for safety
+    information_value: 0.0   # Business recipes, orders, schedules
+    internet_sensitive: true
+
+  Corporate Patch Management Server:
+    zone: Business Zone
+    vulnerability: 3.0       # Well-controlled supply chain in DuPont model
+    compromise_value: 6.5    # Important but not highest priority
+    information_value: 0.0   # Package/signature stores, admin creds
+    internet_sensitive: true
+
+  Manufacturing Application Server (L4):
+    zone: Business Zone
+    vulnerability: 3.0       # Well-managed in DuPont model
+    compromise_value: 6.0    # Business impact but not safety-critical
+    information_value: 0.0   # IP, schedules, bills of materials
+    internet_sensitive: true
+
+  Process Explorer Clients (L4):
+    zone: Business Zone
+    vulnerability: 3.5       # Well-managed workstations in DuPont model
+    compromise_value: 5.5    # Lower compromise value in business zone
+    information_value: 0.0   # Cached data/credentials
+    internet_sensitive: true
+
+  PE Clients (L4):
+    zone: Business Zone
+    vulnerability: 3.5
+    compromise_value: 5.5
+    information_value: 0.0
+    internet_sensitive: true
+
+  Web.21 Server:
+    zone: Business Zone
+    vulnerability: 3.0
+    compromise_value: 5.0    # Business web server, not critical
+    information_value: 0.0   # May front historian/process data
+    internet_sensitive: true
+
+
+  # ===================================
+  # OPERATIONS MANAGEMENT ZONE (L3)
+  # ===================================
+
+  IP 21 Server PM&C:
+    zone: Operations Management Zone
+    vulnerability: 4.8       # Well-managed historian in DuPont model
+    compromise_value: 6.5    # Critical bridge between business and process control
+    information_value: 0.0   # High-value time-series/process data
+    internet_sensitive: false
+
+  Manufacturing Application Server (L3):
+    zone: Operations Management Zone
+    vulnerability: 4.8
+    compromise_value: 6.5    # Direct influence on plant operations workflows
+    information_value: 0.0
+    internet_sensitive: false
+
+  PE Clients (L3):
+    zone: Operations Management Zone
+    vulnerability: 4.8       # Well-managed operator workstations in DuPont model
+    compromise_value: 6.5    # Higher value as they control operations
+    information_value: 0.0
+    internet_sensitive: false
+
+
+  # ===============================
+  # PROCESS CONTROL ZONE (L2/L1)
+  # ===============================
+
+  DCS AD Domain Controllers:
+    zone: Process Control Zone
+    vulnerability: 4.2       # Well-isolated OT AD in DuPont model
+    compromise_value: 7.5    # Critical control over OT identities/policies
+    information_value: 0.0
+    internet_sensitive: false
+
+  DCS Application Server:
+    zone: Process Control Zone
+    vulnerability: 5.2       # Legacy but well-managed in DuPont model
+    compromise_value: 7.2    # Critical influence on many controllers/clients
+    information_value: 0.0
+    internet_sensitive: false
+
+  DCS Consoles:
+    zone: Process Control Zone
+    vulnerability: 5.5       # Well-managed operator consoles in DuPont model
+    compromise_value: 8.5    # Critical command/visibility; direct path to controllers
+    information_value: 0.0
+    internet_sensitive: false
+
+  Process Explorer Clients (L2):
+    zone: Process Control Zone
+    vulnerability: 5.2
+    compromise_value: 8.0
+    information_value: 0.0
+    internet_sensitive: false
+
+  DCS Controllers:
+    zone: Process Control Zone
+    vulnerability: 6.5       # Legacy protocols but well-secured in DuPont model
+    compromise_value: 9.5    # Direct manipulation of process; highest physical impact
+    information_value: 0.0   # Control logic/projects
+    internet_sensitive: false
+
+  Field Bus Gateway:
+    zone: Process Control Zone
+    vulnerability: 5.0       # Well-managed protocol translation in DuPont model
+    compromise_value: 8.8    # Critical chokepoint between controllers and instruments
+    information_value: 0.0
+    internet_sensitive: false
+
+  Field Devices (PCZ):
+    zone: Process Control Zone
+    vulnerability: 4.5       # Well-managed field devices in DuPont model
+    compromise_value: 8.5    # Direct process impact; false data can harm process/quality
+    information_value: 0.0
+    internet_sensitive: false
+
+
+  # ======================
+  # SAFETY SYSTEM ZONE
+  # ======================
+
+  SIS (Safety Instrumented System):
+    zone: Safety System Zone
+    vulnerability: 6.0       # Highly isolated and hardened in DuPont model
+    compromise_value: 10.0   # Safety-critical; plant trip or dangerous state
+    information_value: 0.0   # Safety logic/parameters
+    internet_sensitive: false
+
+  Field Devices (Safety):
+    zone: Safety System Zone
+    vulnerability: 6.5       # Highly secured safety devices in DuPont model
+    compromise_value: 9.5    # Critical safety impact; can defeat/trigger safety actions
+    information_value: 0.0
+    internet_sensitive: false

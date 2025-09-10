@@ -1,0 +1,94 @@
+name: "Large"
+
+configs:
+  # Level 0: Macro-level segmentation (Enterprise-wide zones)
+  - level: 0
+    n_enclaves: 3
+    constraints:
+      max_isps: 2
+      max_degree: 2
+    sensitivities: [0.2, 0.5, 0.8]
+    descriptors: ["std_devices", "nb_high_deg_nodes", "std_web_facing"]
+    evaluation_metrics:
+      performance_loss: 0.5
+      sensitivity_penalty: 0.5
+      attack_surface_exposure: 2.0
+      trust_separation_score: 1.0
+    generations: 50
+    init_batch: 100
+    batch_size: 50
+    time_in_enclaves: 10
+    n_simulations: 10
+
+  # Level 1: Department-level segmentation (IT, Employee, Guest zones)
+  - level: 1
+    n_enclaves: 3
+    constraints:
+      max_isps: 2
+      max_degree: 2
+    sensitivities: [0.2, 0.5, 0.8]
+    descriptors: ["std_devices", "std_high_value", "std_web_facing"]
+    evaluation_metrics:
+      security_loss: 1.0
+      performance_loss: 0.4
+      resilience_loss: 0.5
+      sensitivity_penalty: 0.7
+      attack_surface_exposure: 1.2
+    generations: 100
+    init_batch: 150
+    batch_size: 75
+    time_in_enclaves: 6
+    n_simulations: 15
+
+  # Level 2: Service-level segmentation (Web, Database, Auth services)
+  - level: 2
+    n_enclaves: 3
+    constraints:
+      max_isps: 1
+      max_degree: 2
+    sensitivities: [0.2, 0.5, 0.8]
+    descriptors: ["std_devices", "std_high_value"]
+    evaluation_metrics:
+      security_loss: 1.0
+      resilience_loss: 0.6
+      sensitivity_penalty: 0.8
+      attack_surface_exposure: 1.0
+    generations: 200
+    init_batch: 100
+    batch_size: 50
+    time_in_enclaves: 4
+    n_simulations: 12
+
+  # Level 3: Micro-segmentation (Individual service instances)
+  - level: 3
+    n_enclaves: 3
+    constraints:
+      max_isps: 1
+      max_degree: 2
+    sensitivities: [0.4, 0.6, 0.8]
+    descriptors: ["std_devices", "std_high_value"]
+    evaluation_metrics:
+      security_loss: 1.0
+      resilience_loss: 0.7
+    generations: 200
+    init_batch: 80
+    batch_size: 40
+    time_in_enclaves: 3
+    n_simulations: 10
+
+  # Level 4: Micro-segmentation (Individual service instances)
+  - level: 4
+    n_enclaves: 4
+    constraints:
+      max_isps: 1
+      max_degree: 2
+    sensitivities: [0.4, 0.6, 0.8]
+    descriptors: ["std_devices", "std_high_value"]
+    evaluation_metrics:
+      security_loss: 1.0
+      resilience_loss: 0.7
+    generations: 100
+    init_batch: 80
+    batch_size: 40
+    time_in_enclaves: 3
+    n_simulations: 10
