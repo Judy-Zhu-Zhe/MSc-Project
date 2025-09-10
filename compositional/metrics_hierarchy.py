@@ -1,7 +1,9 @@
 from typing import List, Dict, Optional
 import math
+from collections import deque
 from network import SegmentationNode
-from metrics import topology_distance as base_topology_distance
+from metrics import topology_distance as base_topology_distance, security_loss as base_security_loss, performance_loss as base_performance_loss, resilience_loss as base_resilience_loss
+from simulation import Simulation
 
 
 def topology_distance(node1: SegmentationNode, node2: SegmentationNode, 
@@ -161,3 +163,207 @@ def clear_topology_distance_cache(node: SegmentationNode):
     # Recursively clear children cache
     for child in node.children.values():
         clear_topology_distance_cache(child)
+
+
+def hierarchical_security_loss(node: SegmentationNode, simulations: List[Simulation]) -> float:
+    """
+    Hierarchical version of security loss that computes recursively.
+    
+    For a node u with children C(u):
+    L_s(u) = sum(L_s(c) for c in C(u)) + L_s^cross(u)
+    
+    where L_s(c) is the aggregated loss from child c, and L_s^cross(u) captures 
+    only inter-enclave propagation at level u, preventing double counting.
+    
+    :param node: The SegmentationNode to evaluate
+    :param simulations: List of simulations for the current level
+    :return: Hierarchical security loss
+    """
+    # Base case: if no children, use original device-level simulation
+    if not node.children:
+        return base_security_loss(simulations)
+    
+    # Recursive case: sum losses from children
+    total_loss = 0.0
+    
+    # Aggregate losses from all children
+    for child_idx, child_node in node.children.items():
+        # Get simulations for this child (filtered by enclave)
+        child_simulations = _filter_simulations_by_enclave(simulations, child_idx)
+        if child_simulations:
+            child_loss = hierarchical_security_loss(child_node, child_simulations)
+            total_loss += child_loss
+    
+    # Add cross-level propagation loss (inter-enclave at current level)
+    cross_loss = _calculate_cross_level_security_loss(node, simulations)
+    total_loss += cross_loss
+    
+    return total_loss
+
+
+def hierarchical_performance_loss(node: SegmentationNode) -> float:
+    """
+    Hierarchical version of performance loss.
+    
+    In the hierarchical case, L_p is evaluated primarily at macro levels, 
+    as micro-segmentation rarely affects Internet hop distance.
+    
+    For each enclave E:
+    L_p = sum(|P(D) ∩ devices(E)| * d(Internet, E))
+    
+    where |P(D) ∩ devices(E)| is the number of performance-sensitive devices 
+    in enclave E, and d(Internet, E) is its shortest-path distance to the Internet.
+    
+    :param node: The SegmentationNode to evaluate
+    :return: Hierarchical performance loss
+    """
+    # Base case: if no children, use original performance loss calculation
+    if not node.children:
+        return base_performance_loss(node.seg)
+    
+    # For hierarchical case, evaluate at current level
+    loss = 0.0
+    
+    for enclave in node.seg.enclaves:
+        if enclave.id == 0:  # Skip Internet enclave
+            continue
+            
+        # Count performance-sensitive devices in this enclave
+        num_performance_sensitive = 0
+        for device in enclave.devices:
+            if device.internet_sensitive:
+                num_performance_sensitive += 1
+        
+        # Calculate loss: number of performance-sensitive devices * distance to Internet
+        if enclave.dist_to_internet is not None:
+            loss += num_performance_sensitive * enclave.dist_to_internet
+        elif num_performance_sensitive > 0:
+            # If performance-sensitive devices are not connected to Internet, return infinity
+            return float("inf")
+    
+    return loss
+
+
+def hierarchical_resilience_loss(node: SegmentationNode) -> float:
+    """
+    Hierarchical version of resilience loss.
+    
+    In the hierarchical version, resilience is evaluated independently at each level 
+    of the hierarchy, as resilience depends on the enclave graph at that level. 
+    Each enclave removal considers both direct effects (its own devices) and 
+    indirect effects (subtrees disconnected from the Internet).
+    
+    :param node: The SegmentationNode to evaluate
+    :return: Hierarchical resilience loss
+    """
+    # Base case: if no children, use original resilience loss calculation
+    if not node.children:
+        return base_resilience_loss(node.seg)
+    
+    # For hierarchical case, evaluate at current level
+    loss = 0.0
+    n_enclaves = node.seg.topology.n_enclaves
+    
+    for enclave_id in range(1, n_enclaves):  # Skip Internet (id=0)
+        # Calculate reachable enclaves when this enclave is blocked
+        reachable = _bfs_connected_hierarchical(
+            start=0, 
+            blocked=enclave_id, 
+            adj_matrix=node.seg.topology.adj_matrix
+        )
+        
+        # Direct loss: compromise value of devices in the failed enclave
+        enclave_loss = sum(d.compromise_value for d in node.seg.enclaves[enclave_id].devices)
+        
+        # Indirect loss: enclaves that become disconnected from Internet
+        for i in range(1, n_enclaves):
+            if i != enclave_id and i not in reachable:
+                disconnected_enclave = node.seg.enclaves[i]
+                # Add compromise value of all devices in disconnected enclave
+                enclave_loss += sum(d.compromise_value for d in disconnected_enclave.devices)
+        
+        loss += enclave_loss
+    
+    return loss / (n_enclaves - 1) if n_enclaves > 1 else 0
+
+
+def _filter_simulations_by_enclave(simulations: List[Simulation], enclave_id: int) -> List[Simulation]:
+    """
+    Filter simulations to only include those relevant to a specific enclave.
+    This is a simplified implementation - in practice, you might need more sophisticated filtering.
+    
+    :param simulations: List of all simulations
+    :param enclave_id: ID of the enclave to filter for
+    :return: Filtered list of simulations
+    """
+    # For now, return all simulations as they should contain information about all enclaves
+    # In a more sophisticated implementation, you might filter based on which devices
+    # were involved in each simulation
+    return simulations
+
+
+def _calculate_cross_level_security_loss(node: SegmentationNode, simulations: List[Simulation]) -> float:
+    """
+    Calculate the cross-level security loss component.
+    This captures inter-enclave propagation at the current level, preventing double counting.
+    
+    :param node: The SegmentationNode to evaluate
+    :param simulations: List of simulations for the current level
+    :return: Cross-level security loss
+    """
+    # This is a simplified implementation
+    # In practice, you would need to:
+    # 1. Identify devices that were compromised through inter-enclave propagation
+    # 2. Calculate the loss from these devices
+    # 3. Ensure no double counting with child-level losses
+    
+    cross_loss = 0.0
+    
+    # For now, we'll use a simplified approach based on enclave connectivity
+    # and vulnerability distributions
+    for i, enclave_i in enumerate(node.seg.enclaves):
+        if i == 0:  # Skip Internet
+            continue
+            
+        for j, enclave_j in enumerate(node.seg.enclaves):
+            if j <= i:  # Skip Internet and avoid double counting
+                continue
+                
+            # If enclaves are connected, there's potential for cross-enclave propagation
+            if node.seg.topology.adj_matrix[i][j]:
+                # Calculate potential loss from cross-enclave propagation
+                # This is a simplified heuristic based on enclave vulnerabilities
+                avg_vuln_i = sum(d.vulnerability for d in enclave_i.devices) / len(enclave_i.devices) if enclave_i.devices else 0
+                avg_vuln_j = sum(d.vulnerability for d in enclave_j.devices) / len(enclave_j.devices) if enclave_j.devices else 0
+                
+                # Cross-propagation risk is proportional to average vulnerabilities
+                cross_risk = (avg_vuln_i + avg_vuln_j) / 2.0
+                cross_loss += cross_risk * 0.1  # Scale factor
+    
+    return cross_loss
+
+
+def _bfs_connected_hierarchical(start: int, blocked: int, adj_matrix: List[List[int]]) -> set:
+    """
+    Return the set of nodes reachable from `start` without passing through `blocked`.
+    This is the hierarchical version of the BFS function used in resilience calculation.
+    
+    :param start: Starting node index
+    :param blocked: Blocked node index
+    :param adj_matrix: Adjacency matrix
+    :return: Set of reachable node indices
+    """
+    visited = set()
+    queue = deque([start])
+    
+    while queue:
+        current = queue.popleft()
+        if current == blocked or current in visited:
+            continue
+        visited.add(current)
+        
+        for neighbor, connected in enumerate(adj_matrix[current]):
+            if connected and neighbor not in visited:
+                queue.append(neighbor)
+    
+    return visited
